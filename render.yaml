@@ -2,7 +2,7 @@ services:
   - type: web
     name: junkshop-pos
     env: python
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py ensure_default_admin
     startCommand: gunicorn junkshop_pos.wsgi:application
     envVars:
       - key: DEBUG
@@ -12,6 +12,12 @@ services:
       - key: ALLOWED_HOSTS
         sync: false
       - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: DEFAULT_ADMIN_USERNAME
+        sync: false
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false
+      - key: DEFAULT_ADMIN_EMAIL
         sync: false
       - key: GMAIL_ADDRESS
         sync: false
