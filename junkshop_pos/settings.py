@@ -55,11 +55,11 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@k6+*hlz)cq1oqxcb701b&w10%
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DEBUG', True)
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'cervantes-junk-shop-pos-1.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'cervantes-junk-shop-pos-1.onrender.com', '.onrender.com']
 # Django's test Client and `manage.py test` use HTTP_HOST=testserver.
 if DEBUG:
     ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, 'testserver']))
-CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS') or ['https://cervantes-junk-shop-pos-1.onrender.com']
 
 
 # Application definition
