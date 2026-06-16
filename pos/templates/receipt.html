@@ -1,0 +1,82 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<div class="card p-4 mx-auto receipt-card" id="receipt">
+  <h4 class="text-center">Cervantes Junkshop</h4>
+  <p class="text-center text-muted mb-1">Receipt #{{ txn.id }}</p>
+  <p class="text-center">{{ txn.date|date:"F d, Y h:i A" }}</p>
+  <hr>
+  <p><strong>Customer:</strong> {{ txn.customer|default:"Walk-in" }}</p>
+  <p><strong>Type:</strong> {{ txn.get_transaction_type_display }}</p>
+  <p><strong>Served by:</strong> {{ txn.served_by }}</p>
+  <hr>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Dami</th>
+          <th>Presyo</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in txn.items.all %}
+      <tr>
+        <td>{{ item.material.name }}</td>
+        <td>{{ item.quantity }} {{ item.material.unit }}</td>
+        <td>₱{{ item.price_per_unit }}</td>
+        <td>₱{{ item.subtotal }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <hr>
+  <h5 class="text-end">TOTAL: ₱{{ txn.total_amount }}</h5>
+  {% if txn.notes %}<p class="text-muted">Notes: {{ txn.notes }}</p>{% endif %}
+</div>
+<div class="receipt-actions text-center mt-3">
+  <button onclick="window.print()" class="btn btn-success"><i class="bi bi-printer"></i> I-Print</button>
+  <a href="{% url 'dashboard' %}" class="btn btn-secondary">Bumalik sa Dashboard</a>
+</div>
+<style>
+  .receipt-card {
+    max-width: 500px;
+  }
+
+  .receipt-card .table {
+    min-width: 420px;
+  }
+
+  @media (max-width: 576px) {
+    .receipt-card {
+      padding: 1rem !important;
+    }
+
+    .receipt-actions {
+      display: grid;
+      gap: .5rem;
+    }
+  }
+
+  @media print {
+    .sidebar,
+    .receipt-actions,
+    .alert {
+      display: none !important;
+    }
+
+    .main {
+      margin: 0 !important;
+      width: 100% !important;
+      padding: 0 !important;
+    }
+
+    .content-panel,
+    .receipt-card {
+      border: 0 !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+{% endblock %}

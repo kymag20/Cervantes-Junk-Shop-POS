@@ -1,0 +1,179 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .report-period .btn {
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 10px;
+  }
+
+  .report-summary-card {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    height: 100%;
+    background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .report-summary-card:hover {
+    border-color: #bae6fd;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .report-summary-card .label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  .report-summary-card .value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-main);
+  }
+
+  .btn-report-view {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.85rem;
+    border-color: #0891b2;
+    color: #0e7490;
+    background: #ecfeff;
+  }
+
+  .btn-report-view:hover {
+    background: #cffafe;
+    border-color: #0e7490;
+    color: #155e75;
+  }
+</style>
+
+<div class="pos-page-head align-items-center">
+  <div class="pos-page-title-wrap">
+    <div class="pos-page-icon" aria-hidden="true"><i class="bi bi-bar-chart-fill"></i></div>
+    <div>
+      <h4 class="mb-1 fw-bold">Reports</h4>
+      <p class="pos-page-subtitle mb-0">
+        {% if can_view_all_sales %}
+        Buong ulat ng bayad at materyales — lahat ng transaksyon sa junkshop (Admin).
+        {% else %}
+        Sarili mong transaksyon lamang — bagong account ay walang luma rito hanggang mag-transact ka.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="report-period d-flex flex-wrap gap-2">
+    <a class="btn btn-sm {% if period == 'daily' %}btn-success{% else %}btn-outline-secondary{% endif %}" href="{% url 'limited_reports' %}?period=daily">Daily</a>
+    <a class="btn btn-sm {% if period == 'weekly' %}btn-success{% else %}btn-outline-secondary{% endif %}" href="{% url 'limited_reports' %}?period=weekly">Weekly</a>
+    <a class="btn btn-sm {% if period == 'monthly' %}btn-success{% else %}btn-outline-secondary{% endif %}" href="{% url 'limited_reports' %}?period=monthly">Monthly</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card report-summary-card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <div class="label">Kabuuang nailabas</div>
+        <div class="value">&#8369;{{ total|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card report-summary-card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <div class="label">Bilang ng transaksyon</div>
+        <div class="value">{{ txns|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="pos-panel h-100">
+      <div class="pos-panel-head">
+        <h5>Kamakailang transaksyon</h5>
+        <span class="text-muted">Ay ayon sa napiling panahon</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table pos-data-table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th class="ps-4">ID</th>
+              <th>Seller</th>
+              <th>Petsa</th>
+              <th class="text-end">Total</th>
+              <th class="text-end pe-4">Resibo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for txn in txns %}
+            <tr>
+              <td class="ps-4 fw-semibold text-secondary">#{{ txn.id }}</td>
+              <td>{{ txn.customer|default:"Walk-in" }}</td>
+              <td class="text-nowrap small">{{ txn.date|date:"M d, Y g:i A" }}</td>
+              <td class="text-end fw-semibold">&#8369;{{ txn.total_amount|floatformat:2 }}</td>
+              <td class="text-end pe-4">
+                <a href="{% url 'receipt' txn.pk %}" class="btn btn-sm btn-report-view">Tingnan</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="border-0">
+                <div class="pos-empty">
+                  <i class="bi bi-calendar-x"></i>
+                  <div class="fw-semibold text-secondary">Walang transaksyon sa panahong ito.</div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="pos-panel h-100">
+      <div class="pos-panel-head">
+        <h5>Buod ng materyales</h5>
+        <span class="text-muted">Dami at halaga</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table pos-data-table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th class="ps-4">Material</th>
+              <th class="text-end">Dami</th>
+              <th class="text-end pe-4">Halaga</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in by_material %}
+            <tr>
+              <td class="ps-4">{{ item.material__name }}</td>
+              <td class="text-end small">{{ item.total_qty|floatformat:2 }} {{ item.material__unit }}</td>
+              <td class="text-end pe-4 fw-semibold">&#8369;{{ item.total_value|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="border-0">
+                <div class="pos-empty">
+                  <i class="bi bi-box-seam"></i>
+                  <div class="fw-semibold text-secondary">Walang datos ng materyales.</div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

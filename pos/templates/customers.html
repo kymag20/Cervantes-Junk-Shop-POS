@@ -1,0 +1,182 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .txhist-toolbar {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.85rem 1.15rem;
+    background: var(--panel);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .txhist-toolbar label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .txhist-toolbar .form-select {
+    min-width: 160px;
+    max-width: 220px;
+  }
+
+  .btn-tx-view {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.85rem;
+    border-color: #0891b2;
+    color: #0e7490;
+    background: #ecfeff;
+  }
+
+  .btn-tx-view:hover {
+    background: #cffafe;
+    border-color: #0e7490;
+    color: #155e75;
+  }
+
+  .btn-tx-cancel {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.85rem;
+  }
+
+  .mono-id {
+    font-family: ui-monospace, monospace;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  @media (max-width: 576px) {
+    .txhist-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .txhist-toolbar .form-select {
+      max-width: none;
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="pos-page-head">
+  <div class="pos-page-title-wrap">
+    <div class="pos-page-icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+    <div>
+      <h4 class="mb-1 fw-bold">Transaction history</h4>
+      <p class="pos-page-subtitle mb-0">
+        {% if is_admin_view %}
+        Lahat ng transaksyon ng junkshop (Admin view) - filter ayon sa status.
+        {% else %}
+        Sarili mong transaksyon lamang ang makikita rito.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="txhist-toolbar">
+    <label for="statusFilter">Status</label>
+    <select id="statusFilter" class="form-select form-select-sm">
+      <option value="all">Lahat</option>
+      <option value="completed">Completed</option>
+      <option value="open">Open</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+  </div>
+</div>
+
+<div class="pos-panel">
+  <div class="pos-panel-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h5 class="mb-0">Transaksyon</h5>
+      <span class="text-muted">{{ transactions|length }} record{{ transactions|length|pluralize }}</span>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table pos-data-table mb-0 align-middle" id="transactionsTable">
+      <thead>
+        <tr>
+          <th class="ps-4">ID</th>
+          <th>Seller</th>
+          <th>Type</th>
+          <th>Served by</th>
+          <th>Petsa</th>
+          <th class="text-end">Total</th>
+          <th>Status</th>
+          <th class="text-end pe-4">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr data-status="{% if t.is_cancelled %}cancelled{% elif t.total_amount > 0 %}completed{% else %}open{% endif %}">
+          <td class="ps-4 mono-id">#{{ t.id }}</td>
+          <td class="fw-semibold">{{ t.customer|default:"Walk-in" }}</td>
+          <td>
+            {% if t.transaction_type == 'cash_in' %}
+            <span class="badge rounded-pill text-bg-success-subtle text-success border">Cash In</span>
+            {% else %}
+            <span class="badge rounded-pill text-bg-danger-subtle text-danger border">Cash Out</span>
+            {% endif %}
+          </td>
+          <td class="small text-secondary">{{ t.served_by|default:"—" }}</td>
+          <td class="text-nowrap small">{{ t.date|date:"M d, Y g:i A" }}</td>
+          <td class="text-end fw-bold">₱{{ t.total_amount|floatformat:2 }}</td>
+          <td>
+            {% if t.is_cancelled %}
+            <span class="badge rounded-pill text-bg-danger-subtle text-danger border">Cancelled</span>
+            {% elif t.total_amount > 0 %}
+            <span class="badge rounded-pill text-bg-success-subtle text-success border">Completed</span>
+            {% else %}
+            <span class="badge rounded-pill text-bg-warning-subtle text-warning border">Open</span>
+            {% endif %}
+          </td>
+          <td class="text-end pe-4">
+            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+              <a href="{% url 'receipt' t.pk %}" class="btn btn-sm btn-tx-view">Resibo</a>
+              {% if not t.is_cancelled %}
+              <form method="post" class="d-inline" onsubmit="return confirm('I-cancel ang transaction #{{ t.id }}? Hindi na ito bibilang sa reports at capital.');">
+                {% csrf_token %}
+                <input type="hidden" name="cancel_id" value="{{ t.id }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger btn-tx-cancel">Cancel</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="border-0">
+            <div class="pos-empty">
+              <i class="bi bi-receipt"></i>
+              <div class="fw-semibold text-secondary">Walang transaksyon.</div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  document.getElementById('statusFilter')?.addEventListener('change', function () {
+    const selected = this.value;
+    document.querySelectorAll('#transactionsTable tbody tr[data-status]').forEach((row) => {
+      const status = row.getAttribute('data-status');
+      row.style.display = (selected === 'all' || status === selected) ? '' : 'none';
+    });
+  });
+</script>
+{% endblock %}

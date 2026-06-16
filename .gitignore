@@ -1,0 +1,12 @@
+.env
+db.sqlite3
+staticfiles/
+__pycache__/
+*.py[cod]
+*.sqlite3-journal
+.venv/
+venv/
+"venv/" 
+"__pycache__/" 
+"*.pyc" 
+".env" 

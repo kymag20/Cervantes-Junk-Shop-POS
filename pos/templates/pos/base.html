@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cervantes Junkshop POS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --brand: #0891b2;
+      --brand-dark: #0e7490;
+      --surface: #f3f6fb;
+      --panel: #ffffff;
+      --text-main: #17212f;
+      --border: #e3e8ef;
+    }
+
+    body {
+      background: var(--surface);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      width: 100%;
+    }
+
+    .sidebar {
+      width: 250px;
+      min-width: 250px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      padding: 1.4rem 1.2rem 1rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--brand-dark);
+      font-size: 1.85rem;
+    }
+
+    .menu-wrap {
+      padding: .65rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .sidebar-search {
+      padding: 0 .65rem .35rem;
+    }
+
+    .sidebar-search .form-control {
+      min-height: 38px;
+      font-size: .9rem;
+    }
+
+    .menu-link {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      text-decoration: none;
+      color: #4b5563;
+      border-radius: 10px;
+      padding: .62rem .8rem;
+      font-weight: 500;
+      margin-bottom: .35rem;
+      transition: .15s ease;
+    }
+
+    .menu-link:hover {
+      background: #eef7ff;
+      color: #0f3f67;
+    }
+
+    .menu-link.active {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, .25);
+    }
+
+    .user-box {
+      border-top: 1px solid var(--border);
+      padding: .85rem 1rem;
+      color: #6b7280;
+      font-size: .9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logout-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      color: #0e7490;
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 700;
+      border: 1px solid #bae6fd;
+      background: #ecfeff;
+      border-radius: 10px;
+      padding: .45rem .65rem;
+      white-space: nowrap;
+    }
+
+    .logout-link:hover {
+      color: #075985;
+      background: #e0f2fe;
+    }
+
+    .user-meta {
+      min-width: 0;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      width: fit-content;
+      margin-top: .15rem;
+      padding: .1rem .45rem;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+
+    .main {
+      margin-left: 250px;
+      width: calc(100% - 250px);
+      min-height: 100vh;
+      padding: 1.15rem 1.4rem;
+      min-width: 0;
+    }
+
+    .content-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+      padding: 1.2rem;
+      min-width: 0;
+    }
+
+    .table-responsive {
+      border-radius: 12px;
+    }
+
+    .table {
+      min-width: 680px;
+    }
+
+    .btn {
+      white-space: nowrap;
+    }
+
+    .btn-success {
+      background: var(--brand) !important;
+      border-color: var(--brand) !important;
+    }
+
+    .btn-success:hover {
+      background: var(--brand-dark) !important;
+      border-color: var(--brand-dark) !important;
+    }
+
+    .card {
+      border: 1px solid var(--border) !important;
+      border-radius: 12px;
+    }
+
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid #d8e0ea;
+      min-height: 42px;
+    }
+
+    .form-control:focus, .form-select:focus {
+      box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15);
+      border-color: #67c2d6;
+    }
+
+    .table {
+      --bs-table-bg: transparent;
+    }
+
+    /* Shared POS page chrome (dashboard, reports, lists) */
+    .pos-page-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .pos-page-title-wrap {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      min-width: 0;
+    }
+
+    .pos-page-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #e0f2fe 0%, #cffafe 100%);
+      color: #0e7490;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      flex-shrink: 0;
+    }
+
+    .pos-page-subtitle {
+      color: #64748b;
+      font-size: 0.925rem;
+      max-width: 42rem;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .pos-panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+      background: var(--panel);
+    }
+
+    .pos-panel-head {
+      padding: 1rem 1.25rem;
+      background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pos-panel-head h5 {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .pos-panel-head .text-muted {
+      font-size: 0.8125rem;
+    }
+
+    .pos-metric-tile {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      height: 100%;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .pos-metric-tile:hover {
+      border-color: #bae6fd;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .pos-metric-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      background: #ecfeff;
+      color: #0e7490;
+    }
+
+    .pos-data-table thead th {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      color: #64748b;
+      background: #f8fafc !important;
+      border-bottom-width: 1px;
+      padding-top: 0.95rem;
+      padding-bottom: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .pos-data-table tbody td {
+      border-color: #eef2f6;
+      vertical-align: middle;
+    }
+
+    .pos-data-table tbody tr:hover td {
+      background-color: #fafcff;
+    }
+
+    .pos-empty {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: #94a3b8;
+    }
+
+    .pos-empty i {
+      font-size: 2.25rem;
+      opacity: 0.35;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 992px) {
+      .sidebar {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .main {
+        margin-left: 0;
+        width: 100%;
+        padding: 1rem;
+      }
+      .app-shell {
+        display: block;
+      }
+
+      .brand {
+        padding: 1rem 1rem .4rem;
+        font-size: 1.35rem;
+      }
+
+      .menu-wrap {
+        display: flex;
+        gap: .5rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: .45rem 1rem .85rem;
+        scrollbar-width: thin;
+      }
+
+      .sidebar-search {
+        padding: .65rem 1rem 0;
+      }
+
+      .menu-link {
+        flex: 0 0 auto;
+        margin-bottom: 0;
+      }
+
+      .user-box {
+        padding: .7rem 1rem;
+        border-top: 0;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+
+    @media (max-width: 576px) {
+      .main {
+        padding: .7rem;
+      }
+
+      .content-panel {
+        border-radius: 10px;
+        padding: .85rem;
+      }
+
+      .brand {
+        font-size: 1.15rem;
+      }
+
+      .menu-link {
+        padding: .55rem .65rem;
+        font-size: .9rem;
+      }
+
+      .menu-link i {
+        font-size: 1rem;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .table .btn,
+      .category-actions .btn,
+      .cart-item-row .btn {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">CERVANTES<br>JUNKSHOP POS</div>
+    <form class="sidebar-search" method="get" action="{% url 'search' %}">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input class="form-control" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search POS">
+      </div>
+    </form>
+    <div class="menu-wrap">
+      {% if request.user.is_superuser or request.user.profile.can_view_all_sales %}
+      <a class="menu-link {% if '/dashboard/' in request.path %}active{% endif %}" href="{% url 'dashboard' %}"><i class="bi bi-grid"></i> Dashboard</a>
+      <a class="menu-link {% if '/customers/' in request.path %}active{% endif %}" href="/customers/"><i class="bi bi-people"></i> Transactions</a>
+      <a class="menu-link {% if '/reports/summary/' in request.path %}active{% endif %}" href="/reports/summary/"><i class="bi bi-bar-chart"></i> Reports</a>
+      <a class="menu-link {% if '/users/' in request.path %}active{% endif %}" href="/users/"><i class="bi bi-person-gear"></i> Users</a>
+      <a class="menu-link {% if '/materials/' in request.path %}active{% endif %}" href="/materials/"><i class="bi bi-box-seam"></i> Materials</a>
+      <a class="menu-link {% if '/capital/' in request.path %}active{% endif %}" href="/capital/"><i class="bi bi-cash-stack"></i> Capital Overview</a>
+      <a class="menu-link" href="/backup/"><i class="bi bi-download"></i> Backup DB</a>
+      <a class="menu-link" href="/admin/"><i class="bi bi-shield-lock"></i> Admin Panel</a>
+      {% else %}
+      {% if request.user.profile.can_encode_transactions %}
+      <a class="menu-link {% if '/transaction/new/' in request.path %}active{% endif %}" href="/transaction/new/"><i class="bi bi-cart-plus"></i> New Transaction</a>
+      {% endif %}
+      {% if request.user.profile.can_encode_transactions %}
+      <a class="menu-link {% if '/customers/' in request.path %}active{% endif %}" href="/customers/"><i class="bi bi-people"></i> Transactions</a>
+      {% endif %}
+      {% if request.user.profile.can_encode_transactions %}
+      <a class="menu-link {% if '/materials/' in request.path %}active{% endif %}" href="/materials/"><i class="bi bi-box-seam"></i> Materials</a>
+      <a class="menu-link {% if '/categories/' in request.path %}active{% endif %}" href="/categories/"><i class="bi bi-tags"></i> Categories</a>
+      {% endif %}
+      {% if request.user.is_superuser or request.user.profile.can_view_limited_reports %}
+      <a class="menu-link {% if '/reports/summary/' in request.path %}active{% endif %}" href="/reports/summary/"><i class="bi bi-bar-chart"></i> Reports</a>
+      {% endif %}
+      {% if request.user.profile.can_manage_products %}
+      <a class="menu-link {% if '/capital/' in request.path %}active{% endif %}" href="/capital/"><i class="bi bi-cash-stack"></i> Capital</a>
+      {% endif %}
+      {% endif %}
+    </div>
+    <div class="user-box">
+      <span class="user-meta">
+        <span>{{ request.user.username|default:'admin' }}</span>
+        <span class="role-badge">{{ request.user.profile.get_role_display|default:"Admin" }}</span>
+      </span>
+      <a class="logout-link" href="/logout/" title="Logout"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+    </div>
+  </aside>
+
+  <main class="main">
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+    <div class="content-panel">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+</body>
+</html>

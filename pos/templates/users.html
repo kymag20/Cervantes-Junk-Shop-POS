@@ -1,0 +1,414 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .users-page .page-subtitle {
+    color: #64748b;
+    font-size: 0.925rem;
+    max-width: 36rem;
+    line-height: 1.45;
+  }
+
+  .users-page .page-title-row {
+    gap: 1rem;
+  }
+
+  .users-page .title-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #cffafe 100%);
+    color: #0e7490;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .role-legend-card {
+    border: 1px solid var(--border, #e3e8ef);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    height: 100%;
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    background: var(--panel, #fff);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .role-legend-card:hover {
+    border-color: #bae6fd;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  }
+
+  .role-legend-card .rl-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .role-legend-card.admin-card .rl-icon {
+    background: #eef2ff;
+    color: #4338ca;
+  }
+
+  .role-legend-card.owner-card .rl-icon {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  .role-legend-card .rl-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+    color: var(--text-main, #17212f);
+  }
+
+  .role-legend-card .rl-desc {
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  .users-main-card {
+    border: 1px solid var(--border, #e3e8ef);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+  }
+
+  .users-main-card .card-head {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+    border-bottom: 1px solid var(--border, #e3e8ef);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .users-main-card .card-head h5 {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+
+  .users-table-wrap .table {
+    min-width: 720px;
+  }
+
+  .users-table thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: #64748b;
+    border-bottom-width: 1px;
+    padding-top: 0.95rem;
+    padding-bottom: 0.95rem;
+    white-space: nowrap;
+    background: #f8fafc;
+  }
+
+  .users-table tbody td {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    vertical-align: middle;
+    border-color: #eef2f6;
+  }
+
+  .users-table tbody tr:hover td {
+    background-color: #fafcff;
+  }
+
+  .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .user-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #0891b2 0%, #0e7490 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+  }
+
+  .user-cell .user-lines {
+    min-width: 0;
+  }
+
+  .user-cell .user-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-main, #17212f);
+    line-height: 1.25;
+  }
+
+  .user-cell .user-handle {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-family: ui-monospace, monospace;
+  }
+
+  .email-cell {
+    max-width: 220px;
+  }
+
+  .email-cell .email-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    color: #475569;
+    min-width: 0;
+  }
+
+  .email-cell .email-inner i {
+    color: #94a3b8;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+  }
+
+  .email-cell .email-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .role-select-wrap {
+    max-width: 160px;
+  }
+
+  .role-select-wrap .form-select {
+    min-height: 38px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .status-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+
+  .status-stack .badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.38em 0.65em;
+    letter-spacing: 0.02em;
+  }
+
+  .status-stack .form-check-input {
+    cursor: pointer;
+    width: 2.15rem;
+    height: 1.15rem;
+  }
+
+  .status-stack .form-check-label {
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+
+  .actions-cell .btn-action-save {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.38rem 0.75rem;
+    border-color: #0891b2;
+    color: #0e7490;
+    background: #ecfeff;
+  }
+
+  .actions-cell .btn-action-save:hover {
+    background: #cffafe;
+    border-color: #0e7490;
+    color: #155e75;
+  }
+
+  .actions-cell .btn-action-delete {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.38rem 0.65rem;
+  }
+
+  .users-empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: #94a3b8;
+  }
+
+  .users-empty i {
+    font-size: 2.5rem;
+    opacity: 0.35;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  @media (max-width: 576px) {
+    .users-page .backup-toolbar .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="users-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="d-flex page-title-row align-items-start">
+      <div class="title-icon" aria-hidden="true">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <h4 class="mb-1 fw-bold">Users</h4>
+        <p class="page-subtitle mb-0">Aprubahan ang bagong account, itakda ang Admin o Owner, i-save ang pagbabago, o permanenteng burahin ang hindi na kailangan.</p>
+      </div>
+    </div>
+    <div class="backup-toolbar">
+      <a href="/backup/" class="btn btn-success rounded-3 px-4 shadow-sm">
+        <i class="bi bi-download me-2"></i> Backup Database
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="role-legend-card admin-card">
+        <div class="rl-icon" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></div>
+        <div>
+          <div class="rl-title">Admin</div>
+          <p class="rl-desc">Buong kontrol: users, presyo, lahat ng benta, backup, materyales, at sistema.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="role-legend-card owner-card">
+        <div class="rl-icon" aria-hidden="true"><i class="bi bi-shop-window"></i></div>
+        <div>
+          <div class="rl-title">Owner</div>
+          <p class="rl-desc">Pamamalakad ng produkto, presyo, kapital, transaksyon, at buong ulat.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="users-main-card bg-white">
+    <div class="card-head">
+      <div>
+        <h5 class="mb-0">Accounts</h5>
+        <small class="text-muted">{{ users|length }} user{{ users|length|pluralize }}</small>
+      </div>
+    </div>
+
+    <div class="table-responsive users-table-wrap">
+      <table class="table users-table mb-0 align-middle">
+        <thead>
+          <tr>
+            <th class="ps-4">User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in users %}
+          <tr>
+            <td class="ps-4">
+              <form id="userForm{{ account.id }}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ account.id }}">
+              </form>
+              <div class="user-cell">
+                <span class="user-avatar" aria-hidden="true">{{ account.username|slice:":2"|upper }}</span>
+                <div class="user-lines">
+                  <div class="user-name text-truncate" title="{{ account.profile.full_name|default:account.username }}">{{ account.profile.full_name|default:account.username }}</div>
+                  <div class="user-handle text-truncate">@{{ account.username }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="email-cell">
+              {% if account.email %}
+              <span class="email-inner" title="{{ account.email }}">
+                <i class="bi bi-envelope"></i>
+                <span class="email-text">{{ account.email }}</span>
+              </span>
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="role-select-wrap">
+                <select name="role" class="form-select form-select-sm" form="userForm{{ account.id }}" aria-label="Role for {{ account.username }}">
+                  {% for value, label in role_choices %}
+                  <option value="{{ value }}" {% if account.profile.role == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </td>
+            <td>
+              <div class="status-stack">
+                {% if account.is_active %}
+                <span class="badge rounded-pill text-bg-success">Approved</span>
+                {% else %}
+                <span class="badge rounded-pill text-bg-warning">Pending</span>
+                {% endif %}
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" name="is_active" form="userForm{{ account.id }}" id="activeSwitch{{ account.id }}" {% if account.is_active %}checked{% endif %}>
+                  <label class="form-check-label text-muted" for="activeSwitch{{ account.id }}">Active</label>
+                </div>
+              </div>
+            </td>
+            <td class="text-end pe-4 actions-cell">
+              <div class="d-inline-flex justify-content-end gap-2 flex-wrap">
+                <button type="submit" class="btn btn-sm btn-action-save" name="action" value="save" form="userForm{{ account.id }}">
+                  <i class="bi bi-check2-circle me-1"></i> Save
+                </button>
+                <form method="post" class="d-inline" onsubmit="return confirm('Permanent na matatanggal ang account na @{{ account.username }}. Ituloy?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="user_id" value="{{ account.id }}">
+                  <input type="hidden" name="action" value="delete">
+                  <button type="submit" class="btn btn-sm btn-outline-danger btn-action-delete" aria-label="Delete {{ account.username }}">
+                    <i class="bi bi-trash3 me-1"></i> Delete
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="border-0">
+              <div class="users-empty">
+                <i class="bi bi-person-x"></i>
+                <div class="fw-semibold text-secondary">Walang users</div>
+                <div class="small mt-1">Mag-sign up ang mga bagong account sa login page; lalabas sila dito kapag pending.</div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

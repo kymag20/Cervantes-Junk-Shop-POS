@@ -1,0 +1,211 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .dash-hero {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, #ecfeff 0%, #f0f9ff 45%, #fff 100%);
+    padding: 1.25rem 1.35rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .dash-hero-stat .label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  .dash-hero-stat .value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0e7490;
+    line-height: 1.15;
+  }
+
+  .dash-hero-meta {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-top: 0.35rem;
+  }
+
+  .dash-metric-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+  }
+
+  .dash-metric-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-top: 0.35rem;
+    color: var(--text-main);
+  }
+
+  .dash-side-list .list-group-item {
+    border-left: 0;
+    border-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-color: #eef2f6;
+  }
+
+  .dash-side-list .list-group-item:first-child {
+    border-top: 0;
+  }
+
+  @media (max-width: 576px) {
+    .dash-hero-stat .value {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+
+<div class="pos-page-head">
+  <div class="pos-page-title-wrap">
+    <div class="pos-page-icon" aria-hidden="true"><i class="bi bi-grid-fill"></i></div>
+    <div>
+      <h4 class="mb-1 fw-bold">Dashboard</h4>
+      <p class="pos-page-subtitle">Buod ng bayad sa sellers, transaksyon ngayon, at posisyon ng kapital.</p>
+    </div>
+  </div>
+</div>
+
+<div class="dash-hero">
+  <div class="dash-hero-stat">
+    <div class="label">Natitirang pondo (puhunan)</div>
+    <div class="value {% if capital.is_overdrawn %}text-danger{% endif %}">₱{{ capital.remaining_capital|floatformat:2 }}</div>
+    <div class="dash-hero-meta">
+      Binili ngayon: <strong class="text-dark">₱{{ today_total|floatformat:2 }}</strong>
+      · Kabuuang idinagdag: ₱{{ capital.total_fund_added|floatformat:2 }}
+      · Nabili na scrap: ₱{{ capital.total_paid_out|floatformat:2 }}
+    </div>
+  </div>
+  <a href="/capital/" class="btn btn-outline-secondary rounded-3 px-4 fw-semibold shadow-sm">
+    <i class="bi bi-cash-stack me-2"></i>Capital
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6 col-xl-3">
+    <div class="card pos-metric-tile h-100 border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <span class="dash-metric-label">Bayad ngayon</span>
+          <span class="pos-metric-icon"><i class="bi bi-currency-exchange"></i></span>
+        </div>
+        <div class="dash-metric-value text-info-emphasis">₱{{ today_total|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card pos-metric-tile h-100 border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <span class="dash-metric-label">Transaksyon ngayon</span>
+          <span class="pos-metric-icon"><i class="bi bi-journal-check"></i></span>
+        </div>
+        <div class="dash-metric-value">{{ today_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card pos-metric-tile h-100 border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <span class="dash-metric-label">Nabili na scrap (lahat)</span>
+          <span class="pos-metric-icon"><i class="bi bi-graph-down-arrow"></i></span>
+        </div>
+        <div class="dash-metric-value">₱{{ capital.total_paid_out|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card pos-metric-tile h-100 border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <span class="dash-metric-label">Pondo na nagamit</span>
+          <span class="pos-metric-icon"><i class="bi bi-pie-chart"></i></span>
+        </div>
+        <div class="dash-metric-value">{{ capital.usage_percent }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="pos-panel h-100">
+      <div class="pos-panel-head">
+        <h5>Pinsaleng transaksyon</h5>
+        <span class="text-muted">Hanggang sa 10 pinakabago</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table pos-data-table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th class="ps-4">Petsa</th>
+              <th>Seller</th>
+              <th class="text-end pe-4">Halaga</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in recent %}
+            <tr>
+              <td class="ps-4 text-nowrap">{{ t.date|date:"M d, Y · g:i A" }}</td>
+              <td>{{ t.customer|default:"Walk-in" }}</td>
+              <td class="text-end pe-4 fw-semibold">₱{{ t.total_amount|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="border-0">
+                <div class="pos-empty">
+                  <i class="bi bi-inbox"></i>
+                  <div class="fw-semibold text-secondary">Walang transaksyon pa</div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="pos-panel h-100">
+      <div class="pos-panel-head">
+        <h5>Malalaking deal (kamakailan)</h5>
+        <span class="text-muted">Mula sa huling 10 transaksyon</span>
+      </div>
+      <div class="p-3 pt-0 pb-3">
+        <ul class="list-group list-group-flush dash-side-list">
+          {% for t in top_recent_by_amount %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span class="text-truncate me-2" title="{{ t.customer|default:'Walk-in' }}">{{ t.customer|default:"Walk-in" }}</span>
+            <span class="fw-bold text-nowrap">₱{{ t.total_amount|floatformat:2 }}</span>
+          </li>
+          {% empty %}
+          <li class="list-group-item border-0">
+            <div class="pos-empty py-4">
+              <i class="bi bi-graph-down"></i>
+              <span class="small">Walang datos.</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .capital-muted {
+    color: #7c8798;
+  }
+
+  .capital-hero {
+    border: 0 !important;
+    color: #ecfeff;
+    background: linear-gradient(160deg, #0e7490 0%, #0891b2 100%);
+    box-shadow: 0 12px 32px rgba(8, 145, 178, .22);
+  }
+
+  .capital-hero .capital-muted {
+    color: #d7f5ff;
+  }
+
+  .capital-hero.overdrawn {
+    background: linear-gradient(160deg, #b91c1c 0%, #dc2626 100%);
+  }
+
+  .metric-card {
+    min-height: 128px;
+  }
+
+  .metric-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #def1f7;
+    color: #0c7897;
+  }
+
+  .capital-progress {
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .24);
+    overflow: hidden;
+  }
+
+  .capital-progress-bar {
+    height: 100%;
+    width: var(--usage);
+    background: #ffffff;
+    border-radius: inherit;
+  }
+
+  .entry-table td,
+  .entry-table th {
+    vertical-align: middle;
+  }
+
+  .amount-deposit {
+    color: #047857;
+    font-weight: 700;
+  }
+
+  .amount-payout {
+    color: #b91c1c;
+    font-weight: 700;
+  }
+
+  @media (max-width: 576px) {
+    .metric-card {
+      min-height: auto;
+    }
+  }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h4 class="mb-1 fw-bold">{% if can_add_capital %}Pondo / Kapital{% else %}Capital Overview{% endif %}</h4>
+    <p class="capital-muted mb-0">
+      {% if can_add_capital %}
+      Junkshop buy-out: idinagdag mong pera <strong>minus</strong> bayad sa sellers kapag bumibili ng scrap.
+      {% if capital.is_personal_fund %}
+      <span class="d-block mt-1">Sarili mong pondo ito — bagong account ay nagsisimula sa <strong>₱0</strong>.</span>
+      {% endif %}
+      {% else %}
+      View-only summary ng buong junkshop fund, payouts, at fund activity.
+      {% endif %}
+    </p>
+  </div>
+  <span class="badge text-bg-info-subtle text-info-emphasis border px-3 py-2">{{ capital.today|date:"M d, Y" }}</span>
+</div>
+
+<section class="card capital-hero mb-3 {% if capital.is_overdrawn %}overdrawn{% endif %}">
+  <div class="card-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-lg-8">
+        <div class="capital-muted small mb-1">Natitirang pondo (pwedeng gamitin sa pagbili ng scrap)</div>
+        <div class="display-6 fw-bold mb-2">&#8369;{{ capital.remaining_capital|floatformat:2 }}</div>
+        <div class="capital-progress mb-2" aria-label="Pondo na nagamit">
+          <div class="capital-progress-bar" style="--usage: {{ capital.usage_percent }}%;"></div>
+        </div>
+        <div class="capital-muted small">
+          {{ capital.usage_percent }}% ng idinagdag na pondo ang nagamit na sa pagbili ng scrap
+        </div>
+        {% if capital.is_overdrawn %}
+        <div class="alert alert-warning border-0 mt-3 mb-0 py-2 small">
+          Lumampas sa pondo — magdagdag ng kapital o bawasan ang mga transaksyon.
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-lg-4">
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="capital-muted small">Kabuuang idinagdag</div>
+            <div class="h5 fw-bold mb-0">&#8369;{{ capital.total_fund_added|floatformat:2 }}</div>
+          </div>
+          <div class="col-6">
+            <div class="capital-muted small">Nabili na scrap</div>
+            <div class="h5 fw-bold mb-0">&#8369;{{ capital.total_paid_out|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-xl-3">
+    <div class="card metric-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <span class="capital-muted">Idinagdag ngayon</span>
+          <span class="metric-icon"><i class="bi bi-plus-circle"></i></span>
+        </div>
+        <h4 class="fw-bold mb-0 text-success">&#8369;{{ capital.today_fund_added|floatformat:2 }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card metric-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <span class="capital-muted">Idinagdag buwan na ito</span>
+          <span class="metric-icon"><i class="bi bi-calendar3"></i></span>
+        </div>
+        <h4 class="fw-bold mb-0 text-success">&#8369;{{ capital.month_fund_added|floatformat:2 }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card metric-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <span class="capital-muted">Binili ngayon</span>
+          <span class="metric-icon"><i class="bi bi-cart-dash"></i></span>
+        </div>
+        <h4 class="fw-bold mb-0 text-danger">&#8369;{{ capital.today_payout|floatformat:2 }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card metric-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <span class="capital-muted">Binili buwan na ito</span>
+          <span class="metric-icon"><i class="bi bi-graph-down"></i></span>
+        </div>
+        <h4 class="fw-bold mb-0 text-danger">&#8369;{{ capital.month_payout|floatformat:2 }}</h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  {% if can_add_capital %}
+  <div class="col-lg-4">
+    <form method="post" class="card h-100">
+      {% csrf_token %}
+      <div class="card-body">
+        <h5 class="fw-bold mb-1">Magdagdag ng pondo</h5>
+        <p class="capital-muted small mb-3">Hal. ₱50,000 na puhunan — tataas ang natitirang pondo.</p>
+        <div class="mb-3">
+          <label class="form-label">Petsa</label>
+          <input type="date" name="date" class="form-control" value="{{ capital.today|date:'Y-m-d' }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Halaga</label>
+          <input type="number" name="amount" class="form-control" placeholder="50000.00" step="0.01" min="0.01" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Deskripsyon</label>
+          <input name="description" class="form-control" placeholder="Hal. Starting cash, dagdag puhunan" required>
+        </div>
+        <button class="btn btn-success w-100">I-save ang pondo</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="{% if can_add_capital %}col-lg-8{% else %}col-12{% endif %}">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-1">Galaw ng pondo</h5>
+            <p class="capital-muted small mb-0">Berde = idinagdag · Pula = binili ang scrap (bumaba ang pondo)</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table entry-table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Petsa</th>
+                <th>Uri</th>
+                <th>Detalye</th>
+                <th class="text-end">Halaga</th>
+                <th class="text-end">Natitira</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in activity_log %}
+              <tr>
+                <td class="text-nowrap">{{ row.date|date:"M d, Y" }}</td>
+                <td>
+                  {% if row.type == 'deposit' %}
+                  <span class="badge text-bg-success-subtle text-success border">{{ row.type_label }}</span>
+                  {% else %}
+                  <span class="badge text-bg-danger-subtle text-danger border">{{ row.type_label }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ row.label }}</div>
+                  <div class="small text-muted">{{ row.detail }}</div>
+                </td>
+                <td class="text-end {% if row.amount >= 0 %}amount-deposit{% else %}amount-payout{% endif %}">
+                  {% if row.amount >= 0 %}+{% endif %}&#8369;{{ row.amount|floatformat:2 }}
+                </td>
+                <td class="text-end fw-semibold">&#8369;{{ row.balance_after|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center capital-muted py-4">Walang galaw pa. Magdagdag ng pondo o gumawa ng transaksyon.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h5 class="fw-bold mb-1">Lista ng idinagdag na pondo</h5>
+    <p class="capital-muted small mb-3">Mga manual na entry lang — ang pagbili ng scrap ay automatic na bumababa sa natitirang pondo.</p>
+    <div class="table-responsive">
+      <table class="table entry-table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Petsa</th>
+            <th>Deskripsyon</th>
+            <th>Idinagdag ni</th>
+            <th class="text-end">Halaga</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+          <tr>
+            <td>{{ e.date|date:"M d, Y" }}</td>
+            <td>{{ e.description }}</td>
+            <td>{{ e.added_by|default:"-" }}</td>
+            <td class="text-end amount-deposit">+&#8369;{{ e.amount|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center capital-muted py-4">Walang idinagdag na pondo pa.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

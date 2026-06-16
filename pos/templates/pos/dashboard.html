@@ -1,0 +1,32 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h4 class="mb-1 fw-bold">Dashboard</h4>
+    <p class="text-muted mb-0">Snapshot ng sales performance at recent activity.</p>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <p class="text-muted mb-1">Today's Total</p>
+    <h3 class="text-success fw-bold mb-0">₱{{ total_today }}</h3>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <h5 class="mb-3">Recent Transactions</h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>#</th><th>Customer</th><th>Date</th><th>Total</th></tr></thead>
+        <tbody>
+        {% for t in transactions %}
+          <tr><td>{{ t.id }}</td><td>{{ t.customer_name }}</td><td>{{ t.date|date:"M d, Y" }}</td><td class="fw-semibold">₱{{ t.total_amount }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

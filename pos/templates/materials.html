@@ -1,0 +1,403 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .mat-tool-panel {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    background: var(--panel);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  }
+
+  .mat-tool-panel .form-label-sm {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  .mat-search-wrap .input-group-text {
+    border-radius: 10px 0 0 10px;
+  }
+
+  .mat-search-wrap .form-control {
+    border-radius: 0 10px 10px 0;
+  }
+
+  .btn-mat-edit {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+  }
+
+  .btn-mat-remove {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+  }
+
+  .print-title {
+    display: none;
+  }
+
+  .print-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  .admin-price-shell {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  }
+
+  .admin-price-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-bottom: 1px solid var(--border);
+    background: #f8fafc;
+  }
+
+  .admin-price-stat {
+    padding: 1rem 1.15rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .admin-price-stat:last-child {
+    border-right: 0;
+  }
+
+  .admin-price-stat .label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+  }
+
+  .admin-price-stat .value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #17212f;
+  }
+
+  .admin-price-note {
+    color: #64748b;
+    font-size: 0.875rem;
+  }
+
+  @media print {
+    .sidebar,
+    .pos-page-head,
+    .admin-price-strip,
+    .mat-search-wrap,
+    .print-actions,
+    .alert {
+      display: none !important;
+    }
+
+    .main {
+      margin-left: 0 !important;
+      width: 100% !important;
+      padding: 0 !important;
+    }
+
+    .content-panel,
+    .pos-panel,
+    .admin-price-shell {
+      border: 0 !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+
+    .print-title {
+      display: block;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .table {
+      min-width: 0 !important;
+      width: 100% !important;
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .admin-price-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-price-stat {
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .admin-price-stat:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  @media (max-width: 576px) {
+    #addMaterialForm .row > *,
+    #editMaterialForm .row > * {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="pos-page-head">
+  <div class="pos-page-title-wrap">
+    <div class="pos-page-icon" aria-hidden="true"><i class="bi bi-box-seam-fill"></i></div>
+    <div>
+      <h4 class="mb-1 fw-bold">{% if is_admin_view %}Materials Price List{% else %}Materials{% endif %}</h4>
+      <p class="pos-page-subtitle mb-0">
+        {% if is_admin_view %}
+        Printable copy ng materials at presyo. Read-only ito para pangbigay sa customer o seller.
+        {% else %}
+        Lista ng binibilhan na junkshop items - presyo, category, at unit (kg/pcs).
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  {% if is_admin_view %}
+  <div class="print-actions">
+    <button class="btn btn-success rounded-3 px-4 shadow-sm fw-semibold" type="button" onclick="window.print()">
+      <i class="bi bi-printer me-2"></i>I-print ang price list
+    </button>
+  </div>
+  {% else %}
+  <button class="btn btn-success rounded-3 px-4 shadow-sm fw-semibold" type="button" id="toggleAddMaterialBtn">
+    <i class="bi bi-plus-lg me-2"></i>Bagong material
+  </button>
+  {% endif %}
+</div>
+
+{% if can_edit_materials %}
+<div class="d-none mb-4" id="addMaterialForm">
+  <form method="post" class="mat-tool-panel">
+    {% csrf_token %}
+    <div class="fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-success"></i>Magdagdag ng material</div>
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label-sm">Pangalan</label>
+        <input name="name" class="form-control" placeholder="Hal. Bakal, Bote" required>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label-sm">Category</label>
+        <select name="category" class="form-select">
+          <option value="">Pumili ng category</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label-sm">Presyo / unit</label>
+        <input type="number" name="price_per_unit" step="0.01" class="form-control" placeholder="0.00" required>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label-sm">Unit</label>
+        <select name="unit" class="form-select">
+          <option value="kg">kg</option>
+          <option value="pcs">pcs</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <button class="btn btn-success w-100 rounded-3 fw-semibold">I-save</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if can_edit_materials %}
+<div class="d-none mb-4" id="editMaterialForm">
+  <form method="post" class="mat-tool-panel">
+    {% csrf_token %}
+    <input type="hidden" name="edit_id" id="editMaterialId">
+    <div class="fw-bold mb-3"><i class="bi bi-pencil-square me-2 text-primary"></i>I-edit ang material</div>
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label-sm">Pangalan</label>
+        <input name="name" id="editMaterialName" class="form-control" placeholder="Material name" required>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label-sm">Category</label>
+        <select name="category" id="editMaterialCategory" class="form-select">
+          <option value="">Pumili ng category</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label-sm">Presyo</label>
+        <input type="number" name="price_per_unit" id="editMaterialPrice" step="0.01" class="form-control" required>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label-sm">Unit</label>
+        <select name="unit" id="editMaterialUnit" class="form-select">
+          <option value="kg">kg</option>
+          <option value="pcs">pcs</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <button class="btn btn-success w-100 rounded-3 fw-semibold">I-update</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="mat-search-wrap mb-4">
+  <div class="input-group shadow-sm">
+    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+    <input id="materialSearch" type="text" class="form-control border-start-0 ps-0" placeholder="Hanapin ang material…">
+  </div>
+</div>
+
+<div class="{% if is_admin_view %}admin-price-shell{% else %}pos-panel{% endif %}">
+  <div class="print-title">
+    <h2>Cervantes Junkshop POS</h2>
+    <div>Materials Price List</div>
+    <div class="small">Printed {{ today|date:"M d, Y" }}</div>
+  </div>
+  {% if is_admin_view %}
+  <div class="admin-price-strip">
+    <div class="admin-price-stat">
+      <div class="label">Materials</div>
+      <div class="value">{{ materials|length }}</div>
+    </div>
+    <div class="admin-price-stat">
+      <div class="label">Categories</div>
+      <div class="value">{{ material_category_count }}</div>
+    </div>
+    <div class="admin-price-stat">
+      <div class="label">User Price Sets</div>
+      <div class="value">{{ material_owner_count }}</div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="pos-panel-head">
+    <h5>{% if is_admin_view %}Printable price list{% else %}Lahat ng materyales{% endif %}</h5>
+    <span class="text-muted">
+      {{ materials|length }} item{{ materials|length|pluralize }}
+      {% if is_admin_view %}<span class="admin-price-note">· Updated {{ today|date:"M d, Y" }}</span>{% endif %}
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table pos-data-table mb-0 align-middle" id="materialsTable">
+      <thead>
+        <tr>
+          <th class="ps-4">Material</th>
+          {% if is_admin_view %}
+          <th>Owner</th>
+          {% endif %}
+          <th>Category</th>
+          <th>Presyo</th>
+          <th>Unit</th>
+          {% if can_edit_materials %}
+          <th>Status</th>
+          <th class="text-end pe-4">Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in materials %}
+        <tr>
+          <td class="ps-4 fw-semibold">{{ m.name }}</td>
+          {% if is_admin_view %}
+          <td class="small text-secondary">{{ m.owner|default:"-" }}</td>
+          {% endif %}
+          <td>
+            {% if m.category %}
+            <span class="badge rounded-pill border px-3 py-2" style="color: {{ m.category.color }}; border-color: {{ m.category.color }} !important;">
+              {{ m.category.name }}
+            </span>
+            {% else %}
+            <span class="text-muted small">Walang category</span>
+            {% endif %}
+          </td>
+          <td class="fw-semibold text-nowrap">₱{{ m.price_per_unit }}</td>
+          <td><span class="badge rounded-pill bg-light text-secondary border">{{ m.unit }}</span></td>
+          {% if can_edit_materials %}
+          <td><span class="badge rounded-pill text-bg-success-subtle text-success border">Active</span></td>
+          <td class="text-end pe-4">
+            <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+              <button
+                class="btn btn-sm btn-outline-secondary btn-mat-edit btn-edit-material"
+                type="button"
+                data-id="{{ m.id }}"
+                data-name="{{ m.name }}"
+                data-category="{{ m.category_id|default:'' }}"
+                data-price="{{ m.price_per_unit }}"
+                data-unit="{{ m.unit }}"
+              ><i class="bi bi-pencil me-1"></i>Edit</button>
+              <form method="post" class="d-inline" onsubmit="return confirm('Alisin ang material na ito?');">
+                {% csrf_token %}
+                <input type="hidden" name="delete_id" value="{{ m.id }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger btn-mat-remove"><i class="bi bi-trash3 me-1"></i>Remove</button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if is_admin_view %}5{% else %}6{% endif %}" class="border-0">
+            <div class="pos-empty">
+              <i class="bi bi-box"></i>
+              <div class="fw-semibold text-secondary">Walang materials pa</div>
+              {% if can_edit_materials %}
+              <div class="small mt-1">Magdagdag gamit ang button sa taas.</div>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const addFormWrap = document.getElementById('addMaterialForm');
+  const editFormWrap = document.getElementById('editMaterialForm');
+  const toggleAddBtn = document.getElementById('toggleAddMaterialBtn');
+
+  toggleAddBtn?.addEventListener('click', function () {
+    addFormWrap.classList.toggle('d-none');
+    editFormWrap.classList.add('d-none');
+  });
+
+  document.getElementById('materialSearch')?.addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    document.querySelectorAll('#materialsTable tbody tr').forEach((row) => {
+      const txt = row.textContent.toLowerCase();
+      row.style.display = txt.includes(q) ? '' : 'none';
+    });
+  });
+
+  document.querySelectorAll('.btn-edit-material').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.getElementById('editMaterialId').value = btn.dataset.id;
+      document.getElementById('editMaterialName').value = btn.dataset.name;
+      document.getElementById('editMaterialCategory').value = btn.dataset.category;
+      document.getElementById('editMaterialPrice').value = btn.dataset.price;
+      document.getElementById('editMaterialUnit').value = btn.dataset.unit;
+
+      addFormWrap.classList.add('d-none');
+      editFormWrap.classList.remove('d-none');
+      editFormWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+</script>
+{% endblock %}

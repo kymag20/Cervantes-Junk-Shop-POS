@@ -1,0 +1,488 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .cat-tool-panel {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    background: var(--panel);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  }
+
+  .cat-tool-panel .form-label-sm {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  .cat-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .cat-filter-btn {
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    border: 1px solid #d8e0ea;
+    background: #fff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: 0.15s ease;
+    cursor: pointer;
+  }
+
+  .cat-filter-btn .cat-dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  .cat-filter-btn:hover {
+    border-color: #67c2d6;
+    background: #f8fafc;
+  }
+
+  .cat-filter-btn.active {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    color: #fff;
+    border-color: #0b7f9c;
+    box-shadow: 0 6px 16px rgba(8, 145, 178, 0.35);
+  }
+
+  .cat-filter-btn.active .cat-count {
+    opacity: 0.9;
+  }
+
+  .cat-count {
+    font-size: 0.78rem;
+    opacity: 0.75;
+    font-weight: 700;
+  }
+
+  .cat-filter-btn .btn-cat-mini {
+    padding: 0.1rem 0.35rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    margin-left: 0.15rem;
+    opacity: 0.85;
+  }
+
+  .cat-filter-btn.active .btn-cat-mini {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+  }
+
+  .cat-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .cat-products-panel {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+    background: var(--panel);
+    min-height: 280px;
+  }
+
+  .cat-products-head {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .cat-products-head h5 {
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .cat-products-head .cat-head-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-right: 0.35rem;
+  }
+
+  .cat-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.85rem;
+    padding: 1.15rem 1.25rem 1.25rem;
+  }
+
+  .cat-product-card {
+    border: 1px solid #e2e8f0;
+    border-top: 4px solid var(--cat-color, #0891b2);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    background: #fff;
+  }
+
+  .cat-product-card .p-name {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .cat-product-card .p-price {
+    color: #0891b2;
+    font-weight: 800;
+    font-size: 1.15rem;
+  }
+
+  .cat-product-group {
+    display: none;
+  }
+
+  .cat-product-group.is-visible {
+    display: block;
+  }
+
+  .cat-pick-prompt {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: #94a3b8;
+  }
+
+  .cat-pick-prompt i {
+    font-size: 2.5rem;
+    opacity: 0.35;
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .cat-empty {
+    border: 2px dashed #cbd5e1;
+    border-radius: 14px;
+    padding: 2.5rem 1.5rem;
+    color: #64748b;
+    text-align: center;
+    background: #fafbfc;
+  }
+
+  @media (max-width: 576px) {
+    .cat-product-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="pos-page-head">
+  <div class="pos-page-title-wrap">
+    <div class="pos-page-icon" aria-hidden="true"><i class="bi bi-tags-fill"></i></div>
+    <div>
+      <h4 class="mb-1 fw-bold">Categories</h4>
+      <p class="pos-page-subtitle mb-0">Piliin ang category (hal. <strong>Metals</strong>) — <strong>iyon lang</strong> ang mga produkto na lalabas sa screen.</p>
+    </div>
+  </div>
+  <button class="btn btn-success rounded-3 px-4 shadow-sm fw-semibold" type="button" id="toggleAddCategoryBtn">
+    <i class="bi bi-plus-lg me-2"></i>Bagong category
+  </button>
+</div>
+
+<form method="post" id="deleteCategoryForm" class="d-none">
+  {% csrf_token %}
+  <input type="hidden" name="delete_id" id="deleteCategoryId" value="">
+</form>
+
+{% if uncategorized_count %}
+<div class="alert alert-warning border-0 shadow-sm rounded-3 mb-4 d-flex align-items-start gap-2">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>{{ uncategorized_count }}</strong> material{{ uncategorized_count|pluralize }} ang wala pang category.
+  </div>
+</div>
+{% endif %}
+
+<div class="d-none mb-4" id="addCategoryForm">
+  <form method="post" class="cat-tool-panel">
+    {% csrf_token %}
+    <div class="fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-success"></i>Add Category</div>
+    <div class="row g-3 align-items-end">
+      <div class="col-md-6">
+        <label class="form-label-sm">Pangalan</label>
+        <input name="name" class="form-control" placeholder="Hal. Metals, Plastic" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label-sm">Kulay</label>
+        <input type="color" name="color" class="form-control form-control-color w-100" value="#0891b2">
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-success w-100 rounded-3 fw-semibold"><i class="bi bi-check-lg me-1"></i> Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="d-none mb-4" id="editCategoryForm">
+  <form method="post" class="cat-tool-panel">
+    {% csrf_token %}
+    <input type="hidden" name="edit_id" id="editCategoryId">
+    <div class="fw-bold mb-3"><i class="bi bi-pencil-square me-2 text-primary"></i>I-edit ang category</div>
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label-sm">Pangalan</label>
+        <input name="name" id="editCategoryName" class="form-control" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label-sm">Kulay</label>
+        <input type="color" name="color" id="editCategoryColor" class="form-control form-control-color w-100" value="#0891b2">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label-sm d-block">Active</label>
+        <div class="form-check form-switch mt-2">
+          <input class="form-check-input" type="checkbox" name="is_active" id="editCategoryActive">
+          <label class="form-check-label" for="editCategoryActive">Oo</label>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-success w-100 rounded-3 fw-semibold">I-update</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% if categories or uncategorized_materials %}
+<div class="cat-filter-bar" id="categoryFilterBar" role="tablist" aria-label="Pumili ng category">
+  {% for category in categories %}
+  <button
+    type="button"
+    class="cat-filter-btn"
+    data-category-id="{{ category.id }}"
+    data-category-name="{{ category.name }}"
+    data-category-color="{{ category.color }}"
+    data-edit-id="{{ category.id }}"
+    data-edit-name="{{ category.name }}"
+    data-edit-color="{{ category.color }}"
+    data-edit-active="{{ category.is_active|yesno:'true,false' }}"
+    role="tab"
+    aria-selected="false"
+  >
+    <span class="cat-dot" style="background: {{ category.color }};"></span>
+    {{ category.name }}
+    <span class="cat-count">{{ category.product_count }}</span>
+    <span class="btn btn-sm btn-outline-secondary btn-cat-mini btn-edit-cat" title="Edit"><i class="bi bi-pencil"></i></span>
+  </button>
+  {% endfor %}
+  {% if uncategorized_materials %}
+  <button
+    type="button"
+    class="cat-filter-btn"
+    data-category-id="uncategorized"
+    data-category-name="Walang category"
+    data-category-color="#94a3b8"
+    role="tab"
+    aria-selected="false"
+  >
+    <span class="cat-dot" style="background: #94a3b8;"></span>
+    Walang category
+    <span class="cat-count">{{ uncategorized_materials|length }}</span>
+  </button>
+  {% endif %}
+</div>
+
+<section class="cat-products-panel" id="categoryProductsPanel">
+  <div class="cat-pick-prompt" id="categoryPickPrompt">
+    <i class="bi bi-hand-index"></i>
+    <div class="fw-semibold text-secondary">Pumili ng category sa taas</div>
+    <div class="small mt-1">Hal. i-click ang <strong>Metals</strong> para makita lang ang mga metal products.</div>
+  </div>
+
+  {% for category in categories %}
+  <div
+    class="cat-product-group"
+    id="catGroup{{ category.id }}"
+    data-category-id="{{ category.id }}"
+    data-category-name="{{ category.name }}"
+    data-category-color="{{ category.color }}"
+  >
+    <div class="cat-products-head">
+      <h5>
+        <span class="cat-head-dot" style="background: {{ category.color }};"></span>
+        {{ category.name }}
+      </h5>
+      <div class="cat-head-actions">
+        <span class="badge text-bg-light border">{{ category.product_count }} product{{ category.product_count|pluralize }}</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-3 btn-edit-from-panel" data-edit-id="{{ category.id }}" data-edit-name="{{ category.name }}" data-edit-color="{{ category.color }}" data-edit-active="{{ category.is_active|yesno:'true,false' }}">
+          <i class="bi bi-pencil me-1"></i> Edit
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger rounded-3 btn-delete-from-panel" data-delete-id="{{ category.id }}" data-delete-name="{{ category.name }}" data-product-count="{{ category.product_count }}">
+          <i class="bi bi-trash3 me-1"></i> Delete
+        </button>
+      </div>
+    </div>
+    {% if category.materials.all %}
+    <div class="cat-product-grid">
+      {% for m in category.materials.all %}
+      <article class="cat-product-card" style="--cat-color: {{ category.color }};">
+        <div class="p-name">{{ m.name }}</div>
+        <div class="p-price">₱{{ m.price_per_unit|floatformat:2 }}</div>
+        <div class="text-muted small">bawat {{ m.unit }}</div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="cat-pick-prompt py-5">
+      <i class="bi bi-box"></i>
+      <div class="fw-semibold text-secondary">Walang produkto sa {{ category.name }}</div>
+      <div class="small mt-1">Magdagdag sa <a href="{% url 'materials' %}">Materials</a> at itakda ang category na ito.</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if uncategorized_materials %}
+  <div
+    class="cat-product-group"
+    id="catGroupUncategorized"
+    data-category-id="uncategorized"
+    data-category-name="Walang category"
+    data-category-color="#94a3b8"
+  >
+    <div class="cat-products-head">
+      <h5><span class="cat-head-dot" style="background: #94a3b8;"></span> Walang category</h5>
+      <span class="badge text-bg-light border">{{ uncategorized_materials|length }} item{{ uncategorized_materials|length|pluralize }}</span>
+    </div>
+    <div class="cat-product-grid">
+      {% for m in uncategorized_materials %}
+      <article class="cat-product-card" style="--cat-color: #94a3b8;">
+        <div class="p-name">{{ m.name }}</div>
+        <div class="p-price">₱{{ m.price_per_unit|floatformat:2 }}</div>
+        <div class="text-muted small">bawat {{ m.unit }}</div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+{% else %}
+<div class="cat-empty">
+  <i class="bi bi-tags"></i>
+  <div class="fw-semibold">Walang category pa</div>
+  <div class="small mt-1">Magdagdag gamit ang button sa taas.</div>
+</div>
+{% endif %}
+
+<script>
+  const addCategoryForm = document.getElementById('addCategoryForm');
+  const editCategoryForm = document.getElementById('editCategoryForm');
+  const toggleAddCategoryBtn = document.getElementById('toggleAddCategoryBtn');
+  const deleteCategoryForm = document.getElementById('deleteCategoryForm');
+  const deleteCategoryIdInput = document.getElementById('deleteCategoryId');
+  const pickPrompt = document.getElementById('categoryPickPrompt');
+  const filterBar = document.getElementById('categoryFilterBar');
+  let activeCategoryId = null;
+
+  function confirmDeleteCategory(name, productCount) {
+    let msg = `Permanent na burahin ang category na "${name}"?`;
+    if (productCount > 0) {
+      msg += `\n\n${productCount} material(s) ang magiging walang category.`;
+    }
+    return confirm(msg);
+  }
+
+  function submitDeleteCategory(categoryId, name, productCount) {
+    if (!categoryId || categoryId === 'uncategorized') return;
+    if (!confirmDeleteCategory(name, productCount)) return;
+    deleteCategoryIdInput.value = categoryId;
+    deleteCategoryForm.submit();
+  }
+
+  function openEditForm(chip) {
+    document.getElementById('editCategoryId').value = chip.dataset.editId;
+    document.getElementById('editCategoryName').value = chip.dataset.editName;
+    document.getElementById('editCategoryColor').value = chip.dataset.editColor;
+    document.getElementById('editCategoryActive').checked = chip.dataset.editActive === 'true';
+    addCategoryForm?.classList.add('d-none');
+    editCategoryForm?.classList.remove('d-none');
+    editCategoryForm?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function showCategoryProducts(categoryId) {
+    activeCategoryId = String(categoryId);
+
+    document.querySelectorAll('.cat-product-group').forEach((group) => {
+      const match = group.dataset.categoryId === activeCategoryId;
+      group.classList.toggle('is-visible', match);
+    });
+
+    document.querySelectorAll('.cat-filter-btn').forEach((btn) => {
+      const isActive = btn.dataset.categoryId === activeCategoryId;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    if (pickPrompt) {
+      pickPrompt.style.display = 'none';
+    }
+
+    const panel = document.getElementById('categoryProductsPanel');
+    const target = document.querySelector(`.cat-product-group[data-category-id="${activeCategoryId}"]`);
+    if (panel && target) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  filterBar?.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.btn-edit-cat');
+    if (editBtn) {
+      e.stopPropagation();
+      const chip = editBtn.closest('.cat-filter-btn');
+      if (!chip) return;
+      openEditForm(chip);
+      return;
+    }
+
+    const chip = e.target.closest('.cat-filter-btn');
+    if (!chip) return;
+    showCategoryProducts(chip.dataset.categoryId);
+  });
+
+  document.querySelectorAll('.btn-edit-from-panel').forEach((btn) => {
+    btn.addEventListener('click', () => openEditForm(btn));
+  });
+
+  document.querySelectorAll('.btn-delete-from-panel').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      submitDeleteCategory(btn.dataset.deleteId, btn.dataset.deleteName, parseInt(btn.dataset.productCount || '0', 10));
+    });
+  });
+
+  toggleAddCategoryBtn?.addEventListener('click', () => {
+    addCategoryForm?.classList.toggle('d-none');
+    editCategoryForm?.classList.add('d-none');
+  });
+
+  // URL: /categories/?cat=3 — auto-open category after save or shared link
+  const urlCat = new URLSearchParams(window.location.search).get('cat');
+  if (urlCat && document.querySelector(`.cat-filter-btn[data-category-id="${urlCat}"]`)) {
+    showCategoryProducts(urlCat);
+  } else {
+    const firstChip = filterBar?.querySelector('.cat-filter-btn');
+    if (firstChip) {
+      showCategoryProducts(firstChip.dataset.categoryId);
+    }
+  }
+</script>
+{% endblock %}

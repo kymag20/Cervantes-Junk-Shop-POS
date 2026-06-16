@@ -1,0 +1,30 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div>
+    <h4 class="mb-1 fw-bold">New Transaction</h4>
+    <p class="text-muted mb-0">Create a transaction quickly with cleaner input sections.</p>
+  </div>
+</div>
+<form method="post">
+  {% csrf_token %}
+  <div class="card border-0 shadow-sm p-3 mb-3">
+    <label class="fw-bold mb-2">Customer Name</label>
+    <input type="text" name="customer_name" class="form-control rounded-3">
+  </div>
+  <div class="card border-0 shadow-sm p-3 mb-3">
+    <label class="fw-bold mb-2">Items</label>
+    <div id="items">
+      <div class="row mb-2">
+        <div class="col-md-8">
+          <select name="material" class="form-select rounded-3">
+            {% for m in materials %}<option value="{{ m.id }}">{{ m.name }} (&#8369;{{ m.price_per_unit }}/{{ m.unit }})</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4"><input type="number" name="quantity" step="0.01" placeholder="Quantity" class="form-control rounded-3"></div>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-success rounded-pill px-4">Save Transaction</button>
+</form>
+{% endblock %}

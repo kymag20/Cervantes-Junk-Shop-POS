@@ -1,0 +1,177 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<style>
+  .search-muted {
+    color: #7c8798;
+  }
+
+  .result-section + .result-section {
+    margin-top: 1rem;
+  }
+
+  .result-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    border-radius: 999px;
+    padding: .15rem .55rem;
+    background: #eef7ff;
+    color: #0f3f67;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h4 class="mb-1 fw-bold">Search</h4>
+    <p class="search-muted mb-0">
+      {% if query %}
+      Results for "{{ query }}"
+      {% else %}
+      Type a material, customer, receipt ID, user, or note.
+      {% endif %}
+    </p>
+  </div>
+  <form method="get" action="{% url 'search' %}" class="d-flex gap-2">
+    <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search POS" autofocus>
+    <button class="btn btn-success rounded-3" type="submit">Search</button>
+  </form>
+</div>
+
+{% if query %}
+<section class="result-section card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-semibold mb-0">Materials</h5>
+      <span class="result-pill">{{ materials|length }} found</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th class="text-end">Price</th>
+            <th>Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for material in materials %}
+          <tr>
+            <td>{{ material.name }}</td>
+            <td>{{ material.category|default:"Uncategorized" }}</td>
+            <td class="text-end">&#8369;{{ material.price_per_unit }}</td>
+            <td>{{ material.unit }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center search-muted py-4">No materials found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="result-section card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-semibold mb-0">Transactions</h5>
+      <span class="result-pill">{{ transactions|length }} found</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Seller</th>
+            <th>Served By</th>
+            <th>Date</th>
+            <th class="text-end">Total</th>
+            <th class="text-end">Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for txn in transactions %}
+          <tr>
+            <td>#{{ txn.id }}</td>
+            <td>{{ txn.customer|default:"Walk-in" }}</td>
+            <td>{{ txn.served_by|default:"-" }}</td>
+            <td>{{ txn.date|date:"M d, Y h:i A" }}</td>
+            <td class="text-end fw-semibold">&#8369;{{ txn.total_amount }}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-secondary rounded-3" href="{% url 'receipt' txn.pk %}">View</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center search-muted py-4">No transactions found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{% if customers %}
+<section class="result-section card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-semibold mb-0">Customers</h5>
+      <span class="result-pill">{{ customers|length }} found</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in customers %}
+          <tr>
+            <td>{{ customer.name }}</td>
+            <td>{{ customer.contact|default:"-" }}</td>
+            <td>{{ customer.created_at|date:"M d, Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if users %}
+<section class="result-section card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-semibold mb-0">Users</h5>
+      <span class="result-pill">{{ users|length }} found</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in users %}
+          <tr>
+            <td>{{ account.profile.full_name|default:account.username }}</td>
+            <td>{{ account.email|default:"-" }}</td>
+            <td>{{ account.profile.get_role_display|default:"-" }}</td>
+            <td>{% if account.is_active %}Active{% else %}Inactive{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}
