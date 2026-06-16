@@ -188,6 +188,91 @@ class TransactionVisibilityTests(TestCase):
         self.assertEqual(summary['total_paid_out'], Decimal('30.00'))
         self.assertEqual(summary['remaining_capital'], Decimal('170.00'))
 
+    def test_pending_transaction_does_not_subtract_from_available_capital(self):
+        self.owner_txn.is_cancelled = True
+        self.owner_txn.save(update_fields=['is_cancelled'])
+        Capital.objects.create(
+            date='2026-05-17',
+            amount=Decimal('200.00'),
+            description='Owner capital',
+            added_by=self.owner,
+        )
+        material = Material.objects.create(
+            owner=self.owner,
+            name='Bakal',
+            price_per_unit=Decimal('10.00'),
+            unit='kg',
+        )
+        self.client.login(username='owner', password='pass')
+
+        response = self.client.post(reverse('new_transaction'), {
+            'action': 'save_pending',
+            'new_customer': 'Pending Seller',
+            'material': [str(material.id)],
+            'quantity': ['3'],
+        })
+
+        txn = Transaction.objects.get(customer__name='Pending Seller', served_by=self.owner)
+        summary = get_capital_summary(user=self.owner)
+        self.assertRedirects(response, reverse('new_transaction'))
+        self.assertEqual(txn.status, Transaction.STATUS_PENDING)
+        self.assertEqual(txn.total_amount, Decimal('30.00'))
+        self.assertEqual(summary['total_paid_out'], Decimal('0'))
+        self.assertEqual(summary['remaining_capital'], Decimal('200.00'))
+
+    def test_pending_transaction_can_be_edited_and_finalized_for_printing(self):
+        self.owner_txn.is_cancelled = True
+        self.owner_txn.save(update_fields=['is_cancelled'])
+        Capital.objects.create(
+            date='2026-05-17',
+            amount=Decimal('200.00'),
+            description='Owner capital',
+            added_by=self.owner,
+        )
+        material = Material.objects.create(
+            owner=self.owner,
+            name='Bakal',
+            price_per_unit=Decimal('10.00'),
+            unit='kg',
+        )
+        pending = Transaction.objects.create(
+            customer=self.customer,
+            served_by=self.owner,
+            total_amount=Decimal('10.00'),
+            status=Transaction.STATUS_PENDING,
+        )
+        self.client.login(username='owner', password='pass')
+
+        response = self.client.post(reverse('new_transaction'), {
+            'action': 'finalize',
+            'pending_id': str(pending.id),
+            'customer_id': str(self.customer.id),
+            'material': [str(material.id)],
+            'quantity': ['4'],
+        })
+
+        pending.refresh_from_db()
+        summary = get_capital_summary(user=self.owner)
+        self.assertRedirects(response, reverse('receipt', kwargs={'pk': pending.pk}))
+        self.assertEqual(pending.status, Transaction.STATUS_COMPLETED)
+        self.assertEqual(pending.total_amount, Decimal('40.00'))
+        self.assertEqual(pending.items.count(), 1)
+        self.assertEqual(pending.items.get().quantity, Decimal('4'))
+        self.assertEqual(summary['total_paid_out'], Decimal('40.00'))
+
+    def test_pending_transaction_receipt_redirects_back_to_edit(self):
+        pending = Transaction.objects.create(
+            customer=self.customer,
+            served_by=self.owner,
+            total_amount=Decimal('10.00'),
+            status=Transaction.STATUS_PENDING,
+        )
+        self.client.login(username='owner', password='pass')
+
+        response = self.client.get(reverse('receipt', kwargs={'pk': pending.pk}))
+
+        self.assertRedirects(response, f'{reverse("new_transaction")}?edit={pending.id}')
+
     def test_invalid_transaction_quantity_redirects_without_creating_transaction(self):
         self.owner_txn.is_cancelled = True
         self.owner_txn.save(update_fields=['is_cancelled'])

@@ -38,14 +38,32 @@ def _capital_queryset(user):
 
 def _payout_queryset(user):
     if uses_shop_wide_capital(user):
-        return Transaction.objects.filter(is_cancelled=False, transaction_type=Transaction.TYPE_CASH_OUT)
-    return Transaction.objects.filter(served_by=user, is_cancelled=False, transaction_type=Transaction.TYPE_CASH_OUT)
+        return Transaction.objects.filter(
+            is_cancelled=False,
+            status=Transaction.STATUS_COMPLETED,
+            transaction_type=Transaction.TYPE_CASH_OUT,
+        )
+    return Transaction.objects.filter(
+        served_by=user,
+        is_cancelled=False,
+        status=Transaction.STATUS_COMPLETED,
+        transaction_type=Transaction.TYPE_CASH_OUT,
+    )
 
 
 def _cash_in_queryset(user):
     if uses_shop_wide_capital(user):
-        return Transaction.objects.filter(is_cancelled=False, transaction_type=Transaction.TYPE_CASH_IN)
-    return Transaction.objects.filter(served_by=user, is_cancelled=False, transaction_type=Transaction.TYPE_CASH_IN)
+        return Transaction.objects.filter(
+            is_cancelled=False,
+            status=Transaction.STATUS_COMPLETED,
+            transaction_type=Transaction.TYPE_CASH_IN,
+        )
+    return Transaction.objects.filter(
+        served_by=user,
+        is_cancelled=False,
+        status=Transaction.STATUS_COMPLETED,
+        transaction_type=Transaction.TYPE_CASH_IN,
+    )
 
 
 def get_capital_summary(*, user=None, as_of_date=None):

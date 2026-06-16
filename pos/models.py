@@ -104,15 +104,22 @@ class Customer(models.Model):
 class Transaction(models.Model):
     TYPE_CASH_OUT = 'cash_out'
     TYPE_CASH_IN = 'cash_in'
+    STATUS_PENDING = 'pending'
+    STATUS_COMPLETED = 'completed'
     TYPE_CHOICES = [
         (TYPE_CASH_OUT, 'Cash Out'),
         (TYPE_CASH_IN, 'Cash In'),
+    ]
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_COMPLETED, 'Completed'),
     ]
 
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True)
     served_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='cancelled_transactions')
     transaction_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_CASH_OUT)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_COMPLETED)
     date = models.DateTimeField(auto_now_add=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     is_cancelled = models.BooleanField(default=False)

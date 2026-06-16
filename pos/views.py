@@ -51,6 +51,10 @@ def transactions_queryset_for(user):
     return qs
 
 
+def completed_transactions_queryset_for(user):
+    return transactions_queryset_for(user).filter(status=Transaction.STATUS_COMPLETED)
+
+
 def categories_queryset_for(user):
     """Materials setup is personal per account: bagong user = blank setup."""
     return Category.objects.filter(owner=user)
@@ -247,7 +251,7 @@ def search(request):
                 Q(contact__icontains=query)
             )[:20]
 
-        transactions = transactions_queryset_for(request.user).select_related(
+        transactions = completed_transactions_queryset_for(request.user).select_related(
             'customer', 'served_by'
         ).filter(
             Q(customer__name__icontains=query) |
@@ -255,7 +259,7 @@ def search(request):
             Q(notes__icontains=query)
         )
         if query.isdigit():
-            transactions = transactions | transactions_queryset_for(request.user).select_related(
+            transactions = transactions | completed_transactions_queryset_for(request.user).select_related(
                 'customer', 'served_by'
             ).filter(id=int(query))
         transactions = transactions.order_by('-date')[:20]
@@ -283,9 +287,16 @@ def search(request):
 @role_required(UserProfile.ROLE_ADMIN)
 def dashboard(request):
     today = timezone.now().date()
-    today_transactions = Transaction.objects.filter(date__date=today, is_cancelled=False)
+    today_transactions = Transaction.objects.filter(
+        date__date=today,
+        is_cancelled=False,
+        status=Transaction.STATUS_COMPLETED,
+    )
     today_total = today_transactions.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    recent = Transaction.objects.order_by('-date')[:10]
+    recent = Transaction.objects.filter(
+        status=Transaction.STATUS_COMPLETED,
+        is_cancelled=False,
+    ).order_by('-date')[:10]
     recent_list = list(recent)
     top_recent_by_amount = sorted(
         recent_list,
@@ -308,15 +319,50 @@ def new_transaction(request):
     materials = materials_queryset_for(request.user).select_related('category')
     categories = categories_queryset_for(request.user).filter(is_active=True).annotate(product_count=Count('materials'))
     customers = Customer.objects.all()
+    pending_transactions = transactions_queryset_for(request.user).filter(
+        status=Transaction.STATUS_PENDING,
+        is_cancelled=False,
+    ).select_related('customer').prefetch_related('items__material').order_by('-date')
+    edit_id = request.GET.get('edit')
+    editing_transaction = None
+    editing_items = []
+    if edit_id:
+        editing_transaction = get_object_or_404(
+            pending_transactions,
+            id=edit_id,
+        )
+        editing_items = [
+            {
+                'id': str(item.material_id),
+                'name': item.material.name,
+                'quantity': str(item.quantity),
+            }
+            for item in editing_transaction.items.select_related('material')
+        ]
+
     if request.method == 'POST':
         transaction_type = Transaction.TYPE_CASH_OUT
+        action = request.POST.get('action', 'finalize')
+        is_pending_save = action == 'save_pending'
+        pending_id = request.POST.get('pending_id')
+        if action == 'delete_pending' and pending_id:
+            txn = get_object_or_404(
+                transactions_queryset_for(request.user),
+                id=pending_id,
+                status=Transaction.STATUS_PENDING,
+                is_cancelled=False,
+            )
+            txn.delete()
+            messages.success(request, f'Pending transaction #{pending_id} removed.')
+            return redirect('new_transaction')
+
         customer_id = request.POST.get('customer_id')
         new_customer = request.POST.get('new_customer', '').strip()
         mat_ids = request.POST.getlist('material')
         quantities = request.POST.getlist('quantity')
 
         if not any(mat_ids):
-            messages.error(request, 'Please choose at least one material before starting a transaction.')
+            messages.error(request, 'Please choose at least one material before saving.')
             return redirect('new_transaction')
 
         if new_customer:
@@ -345,6 +391,7 @@ def new_transaction(request):
 
         summary = get_capital_summary(user=request.user)
         if (
+            not is_pending_save and
             transaction_type == Transaction.TYPE_CASH_OUT and
             summary['total_fund_added'] > 0 and
             not can_pay_amount(total, summary, user=request.user)
@@ -356,13 +403,30 @@ def new_transaction(request):
             )
             return redirect('new_transaction')
 
-        txn = Transaction.objects.create(
-            customer=customer,
-            served_by=request.user,
-            transaction_type=transaction_type,
-            notes=request.POST.get('notes', ''),
-            total_amount=total,
-        )
+        if pending_id:
+            txn = get_object_or_404(
+                transactions_queryset_for(request.user),
+                id=pending_id,
+                status=Transaction.STATUS_PENDING,
+                is_cancelled=False,
+            )
+            txn.items.all().delete()
+            txn.customer = customer
+            txn.served_by = request.user
+            txn.transaction_type = transaction_type
+            txn.notes = request.POST.get('notes', '')
+            txn.total_amount = total
+            txn.status = Transaction.STATUS_PENDING if is_pending_save else Transaction.STATUS_COMPLETED
+            txn.save(update_fields=['customer', 'served_by', 'transaction_type', 'notes', 'total_amount', 'status'])
+        else:
+            txn = Transaction.objects.create(
+                customer=customer,
+                served_by=request.user,
+                transaction_type=transaction_type,
+                notes=request.POST.get('notes', ''),
+                total_amount=total,
+                status=Transaction.STATUS_PENDING if is_pending_save else Transaction.STATUS_COMPLETED,
+            )
         for mat, q, subtotal in line_items:
             TransactionItem.objects.create(
                 transaction=txn,
@@ -371,6 +435,9 @@ def new_transaction(request):
                 price_per_unit=mat.price_per_unit,
                 subtotal=subtotal,
             )
+        if is_pending_save:
+            messages.success(request, f'Transaction #{txn.id} saved as pending. Pwede pa itong i-edit bago i-print.')
+            return redirect('new_transaction')
         return redirect('receipt', pk=txn.pk)
     capital_summary = get_capital_summary(user=request.user)
     return render(request, 'new_transaction.html', {
@@ -378,6 +445,9 @@ def new_transaction(request):
         'categories': categories,
         'customers': customers,
         'capital': capital_summary,
+        'pending_transactions': pending_transactions,
+        'editing_transaction': editing_transaction,
+        'editing_items': editing_items,
     })
 
 # --- RECEIPT ---
@@ -388,6 +458,9 @@ def receipt(request, pk):
     if not has_full_sales_access(request.user) and txn.served_by_id != request.user.id:
         messages.error(request, 'You can only view receipts from your own transactions.')
         return redirect('new_transaction')
+    if txn.status == Transaction.STATUS_PENDING:
+        messages.warning(request, 'Pending pa ang transaction. I-finalize muna bago mag-print ng resibo.')
+        return redirect(f'{reverse("new_transaction")}?edit={txn.id}')
     return render(request, 'receipt.html', {'txn': txn})
 
 # --- TRANSACTION HISTORY (admin only — lahat ng transaksyon) ---
@@ -397,7 +470,7 @@ def customers(request):
     if request.method == 'POST':
         cancel_id = request.POST.get('cancel_id')
         if cancel_id:
-            txn = get_object_or_404(transactions_queryset_for(request.user), id=cancel_id)
+            txn = get_object_or_404(completed_transactions_queryset_for(request.user), id=cancel_id)
             if txn.is_cancelled:
                 messages.info(request, f'Transaction #{txn.id} is already cancelled.')
             else:
@@ -408,7 +481,7 @@ def customers(request):
                 messages.success(request, f'Transaction #{txn.id} cancelled.')
             return redirect('customers')
 
-    transactions = transactions_queryset_for(request.user).select_related(
+    transactions = completed_transactions_queryset_for(request.user).select_related(
         'customer', 'served_by'
     ).order_by('-date')
     return render(request, 'customers.html', {
@@ -495,7 +568,7 @@ def limited_reports(request):
         start = today.replace(day=1)
     else:
         start = today
-    txns = transactions_queryset_for(request.user).select_related(
+    txns = completed_transactions_queryset_for(request.user).select_related(
         'customer', 'served_by'
     ).filter(date__date__gte=start, is_cancelled=False)
 
