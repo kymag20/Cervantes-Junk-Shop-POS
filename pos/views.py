@@ -710,23 +710,24 @@ def manage_users(request):
 
         if action == 'delete':
             if user.pk == request.user.pk:
-                messages.error(request, 'You cannot delete your own account.')
+                messages.error(request, 'You cannot deactivate your own account.')
                 return redirect('manage_users')
             profile = getattr(user, 'profile', None)
             is_target_admin = user.is_superuser or (
                 profile and profile.role == UserProfile.ROLE_ADMIN
             )
-            if is_target_admin and not admin_accounts_remain_if_exclude(user.pk):
+            if is_target_admin and active_admin_count(exclude_user_id=user.pk) == 0:
                 messages.error(
                     request,
-                    'Cannot delete the last Admin account. Promote another user to Admin first.',
+                    'Cannot deactivate the last active Admin account. Promote another user to Admin first.',
                 )
                 return redirect('manage_users')
             username = user.username
-            user.delete()
+            user.is_active = False
+            user.save(update_fields=['is_active'])
             messages.success(
                 request,
-                f'Account @{username} has been permanently deleted.',
+                f'Account @{username} has been deactivated. It remains saved in the system.',
             )
             return redirect('manage_users')
 
@@ -768,7 +769,11 @@ def manage_users(request):
 
 @role_required(UserProfile.ROLE_ADMIN)
 def backup_database(request):
-    db_path = settings.DATABASES['default']['NAME']
+    db_config = settings.DATABASES['default']
+    if 'sqlite3' not in db_config.get('ENGINE', ''):
+        messages.error(request, 'Database file download is only available for local SQLite. Use Render PostgreSQL backups online.')
+        return redirect('dashboard')
+    db_path = db_config['NAME']
     filename = f"junkshop-pos-backup-{timezone.now().strftime('%Y%m%d-%H%M%S')}.sqlite3"
     return FileResponse(
         open(db_path, 'rb'),

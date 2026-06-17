@@ -46,6 +46,8 @@ GMAIL_APP_PASSWORD=your-gmail-app-password
 
 Render will install dependencies, collect static files, migrate the database, and start Gunicorn.
 
+Use a persistent Render PostgreSQL database for live data. SQLite is only for local development; on hosted deployments it can reset during redeploys or restarts, which can make accounts and transactions disappear. If you deploy from `render.yaml`, the `junkshop-pos-db` database and `DATABASE_URL` environment variable are created by the blueprint.
+
 ## PythonAnywhere deployment
 
 PythonAnywhere deploys Django through the Web tab and a WSGI file. Do not use `runserver` online.
