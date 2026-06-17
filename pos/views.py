@@ -293,7 +293,7 @@ def search(request):
 @login_required
 @role_required(UserProfile.ROLE_ADMIN)
 def dashboard(request):
-    today = timezone.now().date()
+    today = timezone.localdate()
     today_transactions = Transaction.objects.filter(
         date__date=today,
         is_cancelled=False,
@@ -568,7 +568,7 @@ def reports(request):
 @role_required(UserProfile.ROLE_ADMIN, UserProfile.ROLE_OWNER)
 def limited_reports(request):
     period = request.GET.get('period', 'daily')
-    today = timezone.now().date()
+    today = timezone.localdate()
     if period == 'weekly':
         start = today - datetime.timedelta(days=7)
     elif period == 'monthly':
@@ -718,7 +718,7 @@ def materials(request):
         'can_edit_materials': not is_admin_view,
         'material_owner_count': material_owner_count,
         'material_category_count': material_category_count,
-        'today': timezone.now().date(),
+        'today': timezone.localdate(),
     })
 
 
@@ -806,7 +806,7 @@ def backup_database(request):
         messages.error(request, 'Database file download is only available for local SQLite. Use Render PostgreSQL backups online.')
         return redirect('dashboard')
     db_path = db_config['NAME']
-    filename = f"junkshop-pos-backup-{timezone.now().strftime('%Y%m%d-%H%M%S')}.sqlite3"
+    filename = f"junkshop-pos-backup-{timezone.localtime().strftime('%Y%m%d-%H%M%S')}.sqlite3"
     return FileResponse(
         open(db_path, 'rb'),
         as_attachment=True,

@@ -71,7 +71,7 @@ def get_capital_summary(*, user=None, as_of_date=None):
     user: scopes fund to this account (new users see ₱0 until they add capital).
     as_of_date: optional date — limits payouts to transactions on/before that date.
     """
-    today = timezone.now().date()
+    today = timezone.localdate()
     month_start = today.replace(day=1)
 
     capital_qs = _capital_queryset(user)
