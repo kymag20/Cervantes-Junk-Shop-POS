@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -113,6 +114,7 @@ WSGI_APPLICATION = 'junkshop_pos.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+SQLITE_PATH = os.getenv('SQLITE_PATH', '').strip()
 if DATABASE_URL:
     import dj_database_url
 
@@ -124,10 +126,15 @@ if DATABASE_URL:
         )
     }
 else:
+    if not DEBUG and not SQLITE_PATH:
+        raise ImproperlyConfigured(
+            'Production deploy needs DATABASE_URL for persistent PostgreSQL. '
+            'Without it, accounts can disappear after redeploy because SQLite is temporary on Render.'
+        )
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': SQLITE_PATH or BASE_DIR / 'db.sqlite3',
         }
     }
 

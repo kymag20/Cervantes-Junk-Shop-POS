@@ -52,6 +52,8 @@ Render will install dependencies, collect static files, migrate the database, an
 
 Use a persistent Render PostgreSQL database for live data. SQLite is only for local development; on hosted deployments it can reset during redeploys or restarts, which can make accounts and transactions disappear. If you deploy from `render.yaml`, the `junkshop-pos-db` database and `DATABASE_URL` environment variable are created by the blueprint.
 
+The deploy now checks for a persistent database before starting. If `DATABASE_URL` is missing in production, deploy will fail instead of silently starting with temporary SQLite and losing accounts later.
+
 Important: accounts added in VS Code/local do not automatically appear online unless local and Render are connected to the same database. By default:
 
 - VS Code/local uses `db.sqlite3`.
