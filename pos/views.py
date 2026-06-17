@@ -779,7 +779,7 @@ def manage_users(request):
 
         if action == 'delete':
             if user.pk == request.user.pk:
-                messages.error(request, 'You cannot deactivate your own account.')
+                messages.error(request, 'You cannot delete your own account.')
                 return redirect('manage_users')
             profile = getattr(user, 'profile', None)
             is_target_admin = user.is_superuser or (
@@ -788,15 +788,14 @@ def manage_users(request):
             if is_target_admin and active_admin_count(exclude_user_id=user.pk) == 0:
                 messages.error(
                     request,
-                    'Cannot deactivate the last active Admin account. Promote another user to Admin first.',
+                    'Cannot delete the last active Admin account. Promote another user to Admin first.',
                 )
                 return redirect('manage_users')
             username = user.username
-            user.is_active = False
-            user.save(update_fields=['is_active'])
+            user.delete()
             messages.success(
                 request,
-                f'Account @{username} has been deactivated. It remains saved in the system.',
+                f'Account @{username} has been permanently deleted.',
             )
             return redirect('manage_users')
 
