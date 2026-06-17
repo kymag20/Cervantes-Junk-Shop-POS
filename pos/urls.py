@@ -17,6 +17,7 @@ urlpatterns = [
     path('reports/summary/', views.limited_reports, name='limited_reports'),
     path('capital/', views.capital, name='capital'),
     path('materials/', views.materials, name='materials'),
+    path('materials/<int:pk>/image/', views.material_image, name='material_image'),
     path('users/', views.manage_users, name='manage_users'),
     path('backup/', views.backup_database, name='backup_database'),
 ]

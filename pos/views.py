@@ -20,6 +20,8 @@ from .capital_logic import build_fund_activity_log, can_pay_amount, get_capital_
 
 
 VALID_MATERIAL_UNITS = {'kg', 'pcs'}
+VALID_IMAGE_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+MAX_MATERIAL_IMAGE_SIZE = 3 * 1024 * 1024
 
 
 def parse_positive_decimal(value):
@@ -28,6 +30,11 @@ def parse_positive_decimal(value):
     except (InvalidOperation, TypeError, AttributeError):
         return None
     return amount if amount > 0 else None
+
+
+def uploaded_image_is_valid(uploaded_file):
+    content_type = getattr(uploaded_file, 'content_type', '')
+    return content_type in VALID_IMAGE_CONTENT_TYPES and uploaded_file.size <= MAX_MATERIAL_IMAGE_SIZE
 
 
 # --- AUTH ---
@@ -654,6 +661,8 @@ def materials(request):
         name = request.POST.get('name', '').strip()
         price = parse_positive_decimal(request.POST.get('price_per_unit'))
         unit = request.POST.get('unit')
+        image = request.FILES.get('image')
+        remove_image = request.POST.get('remove_image') == 'on'
         if not name:
             messages.error(request, 'Please enter a material name.')
             return redirect('materials')
@@ -663,12 +672,21 @@ def materials(request):
         if unit not in VALID_MATERIAL_UNITS:
             messages.error(request, 'Please choose a valid material unit.')
             return redirect('materials')
+        if image and not uploaded_image_is_valid(image):
+            messages.error(request, 'Please upload a valid image file: JPG, PNG, WEBP, or GIF up to 3 MB.')
+            return redirect('materials')
         if edit_id:
             material = get_object_or_404(materials_queryset_for(request.user), id=edit_id)
             material.name = name
             material.category = category
             material.price_per_unit = price
             material.unit = unit
+            if remove_image:
+                material.image_data = None
+                material.image_content_type = ''
+            if image:
+                material.image_data = image.read()
+                material.image_content_type = image.content_type
             material.save()
             messages.success(request, 'Material updated successfully.')
         else:
@@ -677,7 +695,9 @@ def materials(request):
                 name=name,
                 category=category,
                 price_per_unit=price,
-                unit=unit
+                unit=unit,
+                image_data=image.read() if image else None,
+                image_content_type=image.content_type if image else '',
             )
             messages.success(request, 'Material added successfully.')
         return redirect('materials')
@@ -700,6 +720,18 @@ def materials(request):
         'material_category_count': material_category_count,
         'today': timezone.now().date(),
     })
+
+
+@login_required
+@role_required(UserProfile.ROLE_ADMIN, UserProfile.ROLE_OWNER)
+def material_image(request, pk):
+    if has_full_sales_access(request.user):
+        material = get_object_or_404(Material, pk=pk)
+    else:
+        material = get_object_or_404(materials_queryset_for(request.user), pk=pk)
+    if not material.image_data:
+        return HttpResponse(status=404)
+    return HttpResponse(bytes(material.image_data), content_type=material.image_content_type or 'image/jpeg')
 
 
 @role_required(UserProfile.ROLE_ADMIN)

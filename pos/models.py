@@ -87,6 +87,8 @@ class Material(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='materials')
     price_per_unit = models.DecimalField(max_digits=8, decimal_places=2)
     unit = models.CharField(max_length=20, default='kg')  # kg or pcs
+    image_data = models.BinaryField(null=True, blank=True)
+    image_content_type = models.CharField(max_length=80, blank=True)
 
     def __str__(self):
         return f"{self.name} (₱{self.price_per_unit}/{self.unit})"

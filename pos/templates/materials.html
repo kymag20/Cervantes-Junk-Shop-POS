@@ -93,6 +93,36 @@
     font-size: 0.875rem;
   }
 
+  .material-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 220px;
+  }
+
+  .material-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    flex: 0 0 auto;
+  }
+
+  .material-thumb-empty {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
   @media print {
     .sidebar,
     .pos-page-head,
@@ -182,7 +212,7 @@
 
 {% if can_edit_materials %}
 <div class="d-none mb-4" id="addMaterialForm">
-  <form method="post" class="mat-tool-panel">
+  <form method="post" enctype="multipart/form-data" class="mat-tool-panel">
     {% csrf_token %}
     <div class="fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-success"></i>Magdagdag ng material</div>
     <div class="row g-3 align-items-end">
@@ -211,6 +241,10 @@
         </select>
       </div>
       <div class="col-lg-2 col-md-4">
+        <label class="form-label-sm">Picture</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+      </div>
+      <div class="col-lg-2 col-md-4">
         <button class="btn btn-success w-100 rounded-3 fw-semibold">I-save</button>
       </div>
     </div>
@@ -220,7 +254,7 @@
 
 {% if can_edit_materials %}
 <div class="d-none mb-4" id="editMaterialForm">
-  <form method="post" class="mat-tool-panel">
+  <form method="post" enctype="multipart/form-data" class="mat-tool-panel">
     {% csrf_token %}
     <input type="hidden" name="edit_id" id="editMaterialId">
     <div class="fw-bold mb-3"><i class="bi bi-pencil-square me-2 text-primary"></i>I-edit ang material</div>
@@ -248,6 +282,14 @@
           <option value="kg">kg</option>
           <option value="pcs">pcs</option>
         </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label class="form-label-sm">Picture</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="checkbox" name="remove_image" id="removeMaterialImage">
+          <label class="form-check-label small text-muted" for="removeMaterialImage">Remove current picture</label>
+        </div>
       </div>
       <div class="col-lg-2 col-md-4">
         <button class="btn btn-success w-100 rounded-3 fw-semibold">I-update</button>
@@ -313,7 +355,16 @@
       <tbody>
         {% for m in materials %}
         <tr>
-          <td class="ps-4 fw-semibold">{{ m.name }}</td>
+          <td class="ps-4 fw-semibold">
+            <div class="material-name-cell">
+              {% if m.image_data %}
+              <img class="material-thumb" src="{% url 'material_image' m.id %}" alt="{{ m.name }}">
+              {% else %}
+              <span class="material-thumb-empty"><i class="bi bi-image"></i></span>
+              {% endif %}
+              <span>{{ m.name }}</span>
+            </div>
+          </td>
           {% if is_admin_view %}
           <td class="small text-secondary">{{ m.owner|default:"-" }}</td>
           {% endif %}
@@ -393,6 +444,7 @@
       document.getElementById('editMaterialCategory').value = btn.dataset.category;
       document.getElementById('editMaterialPrice').value = btn.dataset.price;
       document.getElementById('editMaterialUnit').value = btn.dataset.unit;
+      document.getElementById('removeMaterialImage').checked = false;
 
       addFormWrap.classList.add('d-none');
       editFormWrap.classList.remove('d-none');
