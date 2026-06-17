@@ -56,6 +56,14 @@ def ensure_database_schema_ready():
         return False
 
 
+def ensure_admin_exists_if_possible():
+    try:
+        if active_admin_count() == 0:
+            call_command('ensure_default_admin', verbosity=0)
+    except Exception as exc:
+        print(f'Could not ensure admin account: {exc}')
+
+
 # --- AUTH ---
 def user_role(user):
     profile = getattr(user, 'profile', None)
@@ -129,6 +137,7 @@ def login_view(request):
     if not ensure_database_schema_ready():
         messages.error(request, 'Database is still being prepared. Please refresh in a moment.')
         return render(request, 'login.html', context)
+    ensure_admin_exists_if_possible()
 
     if request.method == 'POST':
         form_type = request.POST.get('form_type', 'login')
@@ -161,6 +170,8 @@ def login_view(request):
                 context['show_signup'] = True
                 return render(request, 'login.html', context)
 
+            should_make_first_admin = active_admin_count() == 0
+
             try:
                 user = User.objects.create_user(
                     username=username,
@@ -169,13 +180,15 @@ def login_view(request):
                     first_name=full_name.split(' ', 1)[0],
                     last_name=full_name.split(' ', 1)[1] if ' ' in full_name else '',
                 )
-                user.is_active = False
-                user.save(update_fields=['is_active'])
+                user.is_active = should_make_first_admin
+                user.is_staff = should_make_first_admin
+                user.is_superuser = should_make_first_admin
+                user.save(update_fields=['is_active', 'is_staff', 'is_superuser'])
                 UserProfile.objects.create(
                     user=user,
                     full_name=full_name,
                     phone=phone,
-                    role=UserProfile.ROLE_OWNER,
+                    role=UserProfile.ROLE_ADMIN if should_make_first_admin else UserProfile.ROLE_OWNER,
                     is_email_verified=True,
                 )
             except IntegrityError:
@@ -202,7 +215,8 @@ def login_view(request):
             messages.warning(request, 'Your account is waiting for Admin approval.')
             return render(request, 'login.html', context)
 
-        user = authenticate(request, username=username, password=password)
+        auth_username = pending_user.username if pending_user else username
+        user = authenticate(request, username=auth_username, password=password)
         if user is not None:
             login(request, user)
             next_url = request.POST.get('next') or request.GET.get('next')

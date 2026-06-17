@@ -25,6 +25,12 @@ class Command(BaseCommand):
             default=os.getenv('DEFAULT_ADMIN_EMAIL', 'admin@example.com'),
             help='Admin email address.',
         )
+        parser.add_argument(
+            '--reset-password',
+            action='store_true',
+            default=os.getenv('RESET_DEFAULT_ADMIN_PASSWORD', '').lower() in ['1', 'true', 'yes', 'on'],
+            help='Reset the admin password even if the account already exists.',
+        )
 
     def handle(self, *args, **options):
         username = options['username'].strip()
@@ -59,8 +65,9 @@ class Command(BaseCommand):
             user.is_active = True
             changed_fields.append('is_active')
 
-        user.set_password(password)
-        changed_fields.append('password')
+        if created or options['reset_password'] or not user.has_usable_password():
+            user.set_password(password)
+            changed_fields.append('password')
         user.save()
 
         profile, profile_created = UserProfile.objects.get_or_create(
