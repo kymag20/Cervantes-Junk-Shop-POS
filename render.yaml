@@ -2,8 +2,8 @@ services:
   - type: web
     name: junkshop-pos
     env: python
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py ensure_default_admin
-    startCommand: python manage.py migrate && python manage.py ensure_default_admin && gunicorn junkshop_pos.wsgi:application
+    buildCommand: python render_build.py
+    startCommand: python render_start.py
     envVars:
       - key: DEBUG
         value: false
