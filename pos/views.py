@@ -5,7 +5,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.conf import settings
 from django.http import FileResponse, HttpResponse
-from django.db import IntegrityError
+from django.core.management import call_command
+from django.db import DatabaseError, IntegrityError, connection
 from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Prefetch, Q, Sum
 from django.urls import reverse
@@ -35,6 +36,24 @@ def parse_positive_decimal(value):
 def uploaded_image_is_valid(uploaded_file):
     content_type = getattr(uploaded_file, 'content_type', '')
     return content_type in VALID_IMAGE_CONTENT_TYPES and uploaded_file.size <= MAX_MATERIAL_IMAGE_SIZE
+
+
+def ensure_database_schema_ready():
+    try:
+        with connection.cursor() as cursor:
+            table_names = connection.introspection.table_names(cursor)
+        if User._meta.db_table in table_names:
+            return True
+    except DatabaseError:
+        pass
+
+    try:
+        call_command('migrate', interactive=False, verbosity=0)
+        call_command('ensure_default_admin', verbosity=0)
+        return True
+    except Exception as exc:
+        print(f'Could not prepare database schema: {exc}')
+        return False
 
 
 # --- AUTH ---
@@ -107,6 +126,10 @@ def role_required(*roles):
 
 def login_view(request):
     context = {}
+    if not ensure_database_schema_ready():
+        messages.error(request, 'Database is still being prepared. Please refresh in a moment.')
+        return render(request, 'login.html', context)
+
     if request.method == 'POST':
         form_type = request.POST.get('form_type', 'login')
 
