@@ -12,6 +12,9 @@ pip install -r requirements.txt
 ```
 
 5. Copy `.env.example` to `.env`, then fill in your values.
+   Leave `DATABASE_URL` blank if you want local test data only.
+   If you want VS Code/local and Render to show the same accounts, set `DATABASE_URL`
+   to the same PostgreSQL URL used by Render.
 6. Prepare the database:
 
 ```bash
@@ -42,11 +45,19 @@ ALLOWED_HOSTS=your-render-domain.onrender.com
 CSRF_TRUSTED_ORIGINS=https://your-render-domain.onrender.com
 GMAIL_ADDRESS=yourgmail@gmail.com
 GMAIL_APP_PASSWORD=your-gmail-app-password
+DATABASE_URL=postgresql://...
 ```
 
 Render will install dependencies, collect static files, migrate the database, and start Gunicorn.
 
 Use a persistent Render PostgreSQL database for live data. SQLite is only for local development; on hosted deployments it can reset during redeploys or restarts, which can make accounts and transactions disappear. If you deploy from `render.yaml`, the `junkshop-pos-db` database and `DATABASE_URL` environment variable are created by the blueprint.
+
+Important: accounts added in VS Code/local do not automatically appear online unless local and Render are connected to the same database. By default:
+
+- VS Code/local uses `db.sqlite3`.
+- Render uses its own live database.
+
+To make them match, copy the Render PostgreSQL External Database URL into local `.env` as `DATABASE_URL`, then run `python manage.py migrate` locally before starting the app.
 
 ## PythonAnywhere deployment
 
