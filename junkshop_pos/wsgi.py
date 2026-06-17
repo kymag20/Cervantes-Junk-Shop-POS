@@ -17,6 +17,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'junkshop_pos.settings')
 
 application = get_wsgi_application()
 
+if os.getenv('RUN_MIGRATIONS_ON_STARTUP', 'true').lower() in ['1', 'true', 'yes', 'on']:
+    call_command('migrate', interactive=False, verbosity=1)
+
 try:
     call_command('ensure_default_admin', verbosity=0)
 except DatabaseError as exc:
