@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
-from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -56,7 +55,6 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-@k6+*hlz)cq1oqxcb701b&w10%
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DEBUG', True)
-IS_RENDER = env_bool('RENDER', False) or bool(os.getenv('RENDER_SERVICE_ID'))
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'cervantes-junk-shop-pos-1.onrender.com', '.onrender.com']
 # Django's test Client and `manage.py test` use HTTP_HOST=testserver.
 if DEBUG:
@@ -127,11 +125,6 @@ if DATABASE_URL:
         )
     }
 else:
-    if (IS_RENDER or not DEBUG) and not SQLITE_PATH:
-        raise ImproperlyConfigured(
-            'Render/production deploy needs DATABASE_URL for persistent PostgreSQL. '
-            'Without it, accounts can disappear after redeploy because SQLite is temporary on Render.'
-        )
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
