@@ -18,8 +18,9 @@ class Command(BaseCommand):
         db_path = Path(str(db.get('NAME', ''))).resolve()
         base_dir = Path(settings.BASE_DIR).resolve()
         debug = bool(getattr(settings, 'DEBUG', False))
+        is_render = bool(getattr(settings, 'IS_RENDER', False))
 
-        if debug:
+        if debug and not is_render:
             self.stdout.write(self.style.WARNING(f'Local SQLite database: {db_path}'))
             return
 
