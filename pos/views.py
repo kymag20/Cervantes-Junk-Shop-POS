@@ -96,7 +96,7 @@ def categories_queryset_for(user):
 
 def materials_queryset_for(user):
     """Materials setup is personal per account: bagong user = blank setup."""
-    return Material.objects.filter(owner=user)
+    return Material.objects.filter(owner=user).order_by('name', 'category__name')
 
 
 def active_admin_count(exclude_user_id=None):
