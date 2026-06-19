@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Junkshop POS</title>
+    <meta name="theme-color" content="#0891b2">
+    <link rel="manifest" href="{% url 'manifest_json' %}">
+    <link rel="icon" href="{% url 'app_icon' %}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{% url 'app_icon' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -271,6 +275,9 @@
                         </div>
                         <button type="submit" class="btn btn-login w-100">Sign In</button>
                     </form>
+                    <button type="button" class="btn btn-success w-100 mt-2 rounded-3 d-none" id="installAppBtn">
+                        <i class="bi bi-window-plus me-1"></i>Install as app
+                    </button>
                     <a href="{% url 'download_shortcut' %}" class="btn btn-outline-secondary w-100 mt-2 rounded-3">
                         <i class="bi bi-download me-1"></i>Download desktop shortcut
                     </a>
@@ -325,6 +332,27 @@
         </section>
     </div>
     <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register("{% url 'service_worker' %}").catch(() => {});
+        }
+
+        let deferredInstallPrompt;
+        const installAppBtn = document.getElementById('installAppBtn');
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            installAppBtn?.classList.remove('d-none');
+        });
+
+        installAppBtn?.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            installAppBtn.classList.add('d-none');
+        });
+
         document.querySelectorAll('[data-auth-tab]').forEach((tab) => {
             tab.addEventListener('click', () => {
                 const target = tab.dataset.authTab;

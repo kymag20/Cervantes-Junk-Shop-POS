@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.conf import settings
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.core.management import call_command
 from django.db import DatabaseError, IntegrityError, connection
 from django.db.models.deletion import ProtectedError
@@ -245,14 +245,65 @@ def public_home(request):
 
 def download_shortcut(request):
     app_url = request.build_absolute_uri(reverse('login'))
+    icon_url = request.build_absolute_uri(reverse('app_icon'))
     shortcut = "\r\n".join([
         "[InternetShortcut]",
         f"URL={app_url}",
+        f"IconFile={icon_url}",
         "IconIndex=0",
         "",
     ])
     response = HttpResponse(shortcut, content_type='application/octet-stream')
     response['Content-Disposition'] = 'attachment; filename="Cervantes Junkshop POS.url"'
+    return response
+
+
+def manifest_json(request):
+    return JsonResponse({
+        'name': 'Cervantes Junkshop POS',
+        'short_name': 'Junkshop POS',
+        'description': 'Cervantes Junkshop point of sale system.',
+        'start_url': reverse('login'),
+        'scope': '/',
+        'display': 'standalone',
+        'background_color': '#eef3f8',
+        'theme_color': '#0891b2',
+        'icons': [
+            {
+                'src': reverse('app_icon'),
+                'sizes': 'any',
+                'type': 'image/svg+xml',
+                'purpose': 'any maskable',
+            },
+        ],
+    })
+
+
+def app_icon(request):
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0891b2"/>
+  <circle cx="256" cy="256" r="158" fill="#ecfeff" opacity=".96"/>
+  <path d="M160 220h192l-22 126H182z" fill="#0e7490"/>
+  <path d="M190 184h132l30 36H160z" fill="#155e75"/>
+  <path d="M213 258h86M213 296h62" stroke="#ecfeff" stroke-width="28" stroke-linecap="round"/>
+</svg>"""
+    return HttpResponse(svg, content_type='image/svg+xml')
+
+
+def service_worker(request):
+    script = """
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', () => {});
+"""
+    response = HttpResponse(script, content_type='application/javascript')
+    response['Service-Worker-Allowed'] = '/'
     return response
 
 
