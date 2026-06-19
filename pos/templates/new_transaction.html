@@ -426,6 +426,15 @@
     cartPreview.innerHTML = '';
   }
 
+  function focusQuantity(index) {
+    const qtyInputs = itemsContainer.querySelectorAll('input[name="quantity"]');
+    const input = qtyInputs[index];
+    if (!input) return;
+    input.focus();
+    input.select();
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function removeItem(index) {
     syncCartQuantities();
     selected.splice(index, 1);
@@ -438,6 +447,7 @@
     syncCartQuantities();
     selected.push({ id: card.dataset.id, name: card.dataset.name, quantity: 1 });
     renderCart();
+    focusQuantity(selected.length - 1);
   });
 
   document.querySelectorAll('.category-chip').forEach((chip) => {
