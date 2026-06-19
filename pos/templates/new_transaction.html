@@ -389,6 +389,13 @@
   const itemsContainer = document.getElementById('items-container');
   const cartPreview = document.getElementById('cartPreview');
 
+  function syncCartQuantities() {
+    const qtyInputs = itemsContainer.querySelectorAll('input[name="quantity"]');
+    qtyInputs.forEach((input, i) => {
+      if (selected[i]) selected[i].quantity = input.value || selected[i].quantity || 1;
+    });
+  }
+
   function renderCart() {
     if (!selected.length) {
       itemsContainer.classList.add('d-none');
@@ -420,6 +427,7 @@
   }
 
   function removeItem(index) {
+    syncCartQuantities();
     selected.splice(index, 1);
     renderCart();
   }
@@ -427,6 +435,7 @@
   document.getElementById('materialGrid')?.addEventListener('click', function (e) {
     const card = e.target.closest('.material-card');
     if (!card) return;
+    syncCartQuantities();
     selected.push({ id: card.dataset.id, name: card.dataset.name, quantity: 1 });
     renderCart();
   });
@@ -444,8 +453,7 @@
   });
 
   document.getElementById('transactionForm')?.addEventListener('submit', function () {
-    const qtyInputs = itemsContainer.querySelectorAll('input[name="quantity"]');
-    qtyInputs.forEach((input, i) => { if (selected[i]) selected[i].quantity = input.value || 1; });
+    syncCartQuantities();
   });
 
   renderCart();
