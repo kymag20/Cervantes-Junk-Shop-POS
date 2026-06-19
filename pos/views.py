@@ -243,6 +243,19 @@ def public_home(request):
     return render(request, 'public_home.html')
 
 
+def download_shortcut(request):
+    app_url = request.build_absolute_uri(reverse('login'))
+    shortcut = "\r\n".join([
+        "[InternetShortcut]",
+        f"URL={app_url}",
+        "IconIndex=0",
+        "",
+    ])
+    response = HttpResponse(shortcut, content_type='application/octet-stream')
+    response['Content-Disposition'] = 'attachment; filename="Cervantes Junkshop POS.url"'
+    return response
+
+
 def robots_txt(request):
     body = "\n".join([
         "User-agent: *",

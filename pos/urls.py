@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.public_home, name='public_home'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
     path('sitemap.xml', views.sitemap_xml, name='sitemap_xml'),
+    path('download-shortcut/', views.download_shortcut, name='download_shortcut'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
