@@ -1,6 +1,7 @@
 {% extends 'pos/base.html' %}
 {% block content %}
-<div class="card p-4 mx-auto receipt-card" id="receipt">
+{{ receipt_payload|json_script:"receiptPayload" }}
+<div class="card p-4 mx-auto receipt-card receipt-paper-{{ printer.paper_width }}" id="receipt">
   <h4 class="text-center">Cervantes Junkshop</h4>
   <p class="text-center text-muted mb-1">Receipt #{{ txn.id }}</p>
   <p class="text-center">{{ txn.date|date:"F d, Y h:i A" }}</p>
@@ -36,16 +37,49 @@
   {% if txn.notes %}<p class="text-muted">Notes: {{ txn.notes }}</p>{% endif %}
 </div>
 <div class="receipt-actions text-center mt-3">
-  <button onclick="window.print()" class="btn btn-success"><i class="bi bi-printer"></i> I-Print</button>
+  <button id="browserPrintBtn" class="btn btn-success"><i class="bi bi-printer"></i> I-Print</button>
+  {% if printer.print_method == 'serial' %}
+  <button id="thermalPrintBtn" class="btn btn-outline-primary"><i class="bi bi-usb-symbol"></i> Thermal Print</button>
+  {% endif %}
+  <a href="{% url 'printer_settings' %}" class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Printer Settings</a>
+  {% if request.user.profile.can_encode_transactions %}
+  <a href="{% url 'new_transaction' %}" class="btn btn-secondary">Bagong Transaction</a>
+  {% else %}
   <a href="{% url 'dashboard' %}" class="btn btn-secondary">Bumalik sa Dashboard</a>
+  {% endif %}
+  <div class="small text-muted mt-2" id="printerStatus"></div>
 </div>
 <style>
   .receipt-card {
     max-width: 500px;
   }
 
+  .receipt-paper-58 {
+    max-width: 58mm;
+    font-size: 12px;
+  }
+
+  .receipt-paper-80 {
+    max-width: 80mm;
+    font-size: 13px;
+  }
+
   .receipt-card .table {
-    min-width: 420px;
+    min-width: 0;
+    font-size: inherit;
+  }
+
+  .receipt-card th,
+  .receipt-card td {
+    padding-left: .25rem;
+    padding-right: .25rem;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .receipt-card h4 {
+    font-size: 1.05rem;
+    font-weight: 800;
   }
 
   @media (max-width: 576px) {
@@ -77,6 +111,126 @@
       border: 0 !important;
       box-shadow: none !important;
     }
+
+    .receipt-card {
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    {% if printer.paper_width == '58' %}
+    @page {
+      size: 58mm auto;
+      margin: 2mm;
+    }
+    {% elif printer.paper_width == '80' %}
+    @page {
+      size: 80mm auto;
+      margin: 3mm;
+    }
+    {% else %}
+    @page {
+      size: auto;
+      margin: 10mm;
+    }
+    {% endif %}
   }
 </style>
+<script>
+  const receiptPayload = JSON.parse(document.getElementById('receiptPayload').textContent);
+  const printerStatus = document.getElementById('printerStatus');
+  const receiptCopies = Number('{{ printer.receipt_copies|default:1 }}') || 1;
+  const serialBaudRate = Number('{{ printer.serial_baud_rate|default:9600 }}') || 9600;
+  let serialPort = null;
+
+  function setPrinterStatus(message) {
+    if (printerStatus) {
+      printerStatus.textContent = message;
+    }
+  }
+
+  function padLine(left, right, width = 32) {
+    const cleanLeft = String(left).slice(0, width);
+    const cleanRight = String(right);
+    const spaces = Math.max(1, width - cleanLeft.length - cleanRight.length);
+    return `${cleanLeft}${' '.repeat(spaces)}${cleanRight}`;
+  }
+
+  function buildReceiptText() {
+    const lines = [
+      receiptPayload.shop.toUpperCase(),
+      `Receipt #${receiptPayload.receiptNo}`,
+      receiptPayload.date,
+      '--------------------------------',
+      `Customer: ${receiptPayload.customer}`,
+      `Type: ${receiptPayload.type}`,
+      `Served: ${receiptPayload.servedBy}`,
+      '--------------------------------',
+    ];
+
+    receiptPayload.items.forEach((item) => {
+      lines.push(item.name);
+      lines.push(padLine(`${item.quantity} ${item.unit} x ${item.price}`, `Php ${item.subtotal}`));
+    });
+
+    lines.push('--------------------------------');
+    lines.push(padLine('TOTAL', `Php ${receiptPayload.total}`));
+    if (receiptPayload.notes) {
+      lines.push(`Notes: ${receiptPayload.notes}`);
+    }
+    lines.push('', '', '');
+    return lines.join('\n');
+  }
+
+  async function requestSerialPort() {
+    if (!('serial' in navigator)) {
+      throw new Error('Hindi supported ng browser ang USB/Serial print. Gamitin ang Chrome o Edge sa HTTPS.');
+    }
+
+    const rememberedPorts = await navigator.serial.getPorts();
+    serialPort = rememberedPorts[0] || await navigator.serial.requestPort();
+    if (!serialPort.readable && !serialPort.writable) {
+      await serialPort.open({ baudRate: serialBaudRate });
+    }
+    return serialPort;
+  }
+
+  async function writeSerialReceipt() {
+    const port = await requestSerialPort();
+    const writer = port.writable.getWriter();
+    try {
+      const encoder = new TextEncoder();
+      for (let copy = 0; copy < receiptCopies; copy += 1) {
+        await writer.write(new Uint8Array([0x1b, 0x40]));
+        await writer.write(encoder.encode(buildReceiptText()));
+        await writer.write(new Uint8Array([0x0a, 0x0a, 0x1d, 0x56, 0x00]));
+      }
+    } finally {
+      writer.releaseLock();
+    }
+  }
+
+  document.getElementById('browserPrintBtn').addEventListener('click', () => {
+    window.print();
+  });
+
+  const thermalPrintBtn = document.getElementById('thermalPrintBtn');
+  if (thermalPrintBtn) {
+    thermalPrintBtn.addEventListener('click', async () => {
+      try {
+        setPrinterStatus('Sending receipt to thermal printer...');
+        await writeSerialReceipt();
+        setPrinterStatus('Receipt sent to printer.');
+      } catch (error) {
+        setPrinterStatus(error.message);
+      }
+    });
+  }
+
+  {% if printer.auto_open_print_dialog and printer.print_method == 'browser' %}
+  window.addEventListener('load', () => {
+    window.setTimeout(() => window.print(), 400);
+  });
+  {% endif %}
+</script>
 {% endblock %}

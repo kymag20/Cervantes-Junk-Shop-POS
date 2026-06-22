@@ -144,6 +144,36 @@ class TransactionItem(models.Model):
         super().save(*args, **kwargs)
 
 
+class PrinterSetting(models.Model):
+    METHOD_BROWSER = 'browser'
+    METHOD_SERIAL = 'serial'
+    PAPER_58MM = '58'
+    PAPER_80MM = '80'
+    PAPER_A4 = 'a4'
+
+    METHOD_CHOICES = [
+        (METHOD_BROWSER, 'Browser print'),
+        (METHOD_SERIAL, 'USB/Serial thermal printer'),
+    ]
+    PAPER_CHOICES = [
+        (PAPER_58MM, '58mm'),
+        (PAPER_80MM, '80mm'),
+        (PAPER_A4, 'A4'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='printer_setting')
+    print_method = models.CharField(max_length=20, choices=METHOD_CHOICES, default=METHOD_BROWSER)
+    paper_width = models.CharField(max_length=10, choices=PAPER_CHOICES, default=PAPER_58MM)
+    auto_open_print_dialog = models.BooleanField(default=False)
+    receipt_copies = models.PositiveSmallIntegerField(default=1)
+    serial_baud_rate = models.PositiveIntegerField(default=9600)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.user.username} printer settings'
+
+
 class Capital(models.Model):
     date = models.DateField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)

@@ -1,0 +1,263 @@
+{% extends 'pos/base.html' %}
+{% block content %}
+<div class="pos-page-head">
+  <div class="pos-page-title-wrap">
+    <div class="pos-page-icon"><i class="bi bi-printer"></i></div>
+    <div>
+      <h3 class="mb-1">Printer Settings</h3>
+      <p class="pos-page-subtitle">I-save ang receipt size at i-test ang POS printer bago mag-print ng resibo.</p>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <form method="post" class="pos-panel">
+      {% csrf_token %}
+      <div class="pos-panel-head">
+        <h5>Receipt Printer</h5>
+      </div>
+      <div class="p-3">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="print_method">Print method</label>
+          <select class="form-select" id="print_method" name="print_method">
+            <option value="browser" {% if printer.print_method == 'browser' %}selected{% endif %}>Browser print dialog</option>
+            <option value="serial" {% if printer.print_method == 'serial' %}selected{% endif %}>USB/Serial thermal printer</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="paper_width">Paper size</label>
+          <select class="form-select" id="paper_width" name="paper_width">
+            <option value="58" {% if printer.paper_width == '58' %}selected{% endif %}>58mm thermal</option>
+            <option value="80" {% if printer.paper_width == '80' %}selected{% endif %}>80mm thermal</option>
+            <option value="a4" {% if printer.paper_width == 'a4' %}selected{% endif %}>A4 / normal printer</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="serial_baud_rate">Serial speed</label>
+          <select class="form-select" id="serial_baud_rate" name="serial_baud_rate">
+            <option value="9600" {% if printer.serial_baud_rate == 9600 %}selected{% endif %}>9600</option>
+            <option value="19200" {% if printer.serial_baud_rate == 19200 %}selected{% endif %}>19200</option>
+            <option value="38400" {% if printer.serial_baud_rate == 38400 %}selected{% endif %}>38400</option>
+            <option value="57600" {% if printer.serial_baud_rate == 57600 %}selected{% endif %}>57600</option>
+            <option value="115200" {% if printer.serial_baud_rate == 115200 %}selected{% endif %}>115200</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="receipt_copies">Copies</label>
+          <input class="form-control" id="receipt_copies" name="receipt_copies" type="number" min="1" max="3" value="{{ printer.receipt_copies }}">
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" role="switch" id="auto_open_print_dialog" name="auto_open_print_dialog" {% if printer.auto_open_print_dialog %}checked{% endif %}>
+          <label class="form-check-label fw-semibold" for="auto_open_print_dialog">Auto open print dialog after receipt</label>
+        </div>
+
+        <button class="btn btn-success w-100" type="submit">
+          <i class="bi bi-check2-circle me-1"></i> Save Printer Settings
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="pos-panel mb-3">
+      <div class="pos-panel-head">
+        <h5>Test Printer</h5>
+      </div>
+      <div class="p-3">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button class="btn btn-outline-secondary" type="button" id="browserTestBtn">
+            <i class="bi bi-printer me-1"></i> Test Browser Print
+          </button>
+          <button class="btn btn-outline-primary" type="button" id="connectSerialBtn">
+            <i class="bi bi-usb-symbol me-1"></i> Scan USB/Serial
+          </button>
+          <button class="btn btn-outline-primary" type="button" id="scanBluetoothBtn">
+            <i class="bi bi-bluetooth me-1"></i> Scan Bluetooth
+          </button>
+          <button class="btn btn-success" type="button" id="serialTestBtn">
+            <i class="bi bi-receipt me-1"></i> Test Thermal Print
+          </button>
+        </div>
+        <div class="alert alert-info mb-0" id="printerStatus">
+          Ready. Piliin muna ang printer sa test kung direct USB/Serial ang gagamitin.
+        </div>
+      </div>
+    </div>
+
+    <div class="printer-preview-wrap">
+      <div class="receipt-preview {% if printer.paper_width == '80' %}receipt-preview-80{% elif printer.paper_width == 'a4' %}receipt-preview-a4{% else %}receipt-preview-58{% endif %}" id="testReceipt">
+        <h5>Cervantes Junkshop</h5>
+        <div>Printer Test</div>
+        <div>{% now "Y-m-d h:i A" %}</div>
+        <hr>
+        <div class="d-flex justify-content-between"><span>Bakal</span><span>12.50 kg</span></div>
+        <div class="d-flex justify-content-between"><span>Presyo</span><span>Php 15.00</span></div>
+        <div class="d-flex justify-content-between fw-bold"><span>Total</span><span>Php 187.50</span></div>
+        <hr>
+        <div class="text-center">TEST PRINT ONLY</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .printer-preview-wrap {
+    border: 1px dashed #cbd5e1;
+    border-radius: 14px;
+    background: #f8fafc;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  .receipt-preview {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: #111827;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 0 auto;
+    padding: 10px;
+  }
+
+  .receipt-preview h5 {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    text-align: center;
+  }
+
+  .receipt-preview-58 {
+    width: 58mm;
+  }
+
+  .receipt-preview-80 {
+    width: 80mm;
+  }
+
+  .receipt-preview-a4 {
+    width: min(100%, 520px);
+  }
+
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+
+    #testReceipt,
+    #testReceipt * {
+      visibility: visible !important;
+    }
+
+    #testReceipt {
+      position: absolute;
+      left: 0;
+      top: 0;
+      border: 0;
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+</style>
+
+<script>
+  const statusBox = document.getElementById('printerStatus');
+  const baudRateInput = document.getElementById('serial_baud_rate');
+  let serialPort = null;
+
+  function setPrinterStatus(message, type = 'info') {
+    statusBox.className = `alert alert-${type} mb-0`;
+    statusBox.textContent = message;
+  }
+
+  function testReceiptText() {
+    return [
+      'CERVANTES JUNKSHOP',
+      'PRINTER TEST',
+      new Date().toLocaleString(),
+      '------------------------------',
+      'Bakal        12.50 kg',
+      'Presyo       Php 15.00',
+      'TOTAL        Php 187.50',
+      '------------------------------',
+      'TEST PRINT ONLY',
+      '',
+      '',
+      '',
+    ].join('\n');
+  }
+
+  async function requestSerialPort() {
+    if (!('serial' in navigator)) {
+      throw new Error('Hindi supported ng browser ang USB/Serial scan. Gamitin ang Chrome o Edge sa HTTPS.');
+    }
+
+    const rememberedPorts = await navigator.serial.getPorts();
+    serialPort = rememberedPorts[0] || await navigator.serial.requestPort();
+    if (!serialPort.readable && !serialPort.writable) {
+      await serialPort.open({ baudRate: Number(baudRateInput.value || 9600) });
+    }
+    return serialPort;
+  }
+
+  async function writeSerialText(text) {
+    const port = await requestSerialPort();
+    const writer = port.writable.getWriter();
+    try {
+      const encoder = new TextEncoder();
+      await writer.write(new Uint8Array([0x1b, 0x40]));
+      await writer.write(encoder.encode(text));
+      await writer.write(new Uint8Array([0x0a, 0x0a, 0x1d, 0x56, 0x00]));
+    } finally {
+      writer.releaseLock();
+    }
+  }
+
+  document.getElementById('browserTestBtn').addEventListener('click', () => {
+    setPrinterStatus('Opening browser print dialog...', 'info');
+    window.print();
+  });
+
+  document.getElementById('connectSerialBtn').addEventListener('click', async () => {
+    try {
+      await requestSerialPort();
+      setPrinterStatus('Printer connected. Pwede na ang thermal test print.', 'success');
+    } catch (error) {
+      setPrinterStatus(error.message, 'warning');
+    }
+  });
+
+  document.getElementById('scanBluetoothBtn').addEventListener('click', async () => {
+    try {
+      if (!('bluetooth' in navigator)) {
+        throw new Error('Hindi supported ng browser ang Bluetooth scan. Gamitin ang Chrome o Edge sa HTTPS.');
+      }
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [
+          '000018f0-0000-1000-8000-00805f9b34fb',
+          '0000ffe0-0000-1000-8000-00805f9b34fb',
+        ],
+      });
+      setPrinterStatus(`Bluetooth device found: ${device.name || 'Unnamed printer'}. Kung hindi direct-print, i-pair muna sa Windows tapos gamitin ang Browser print.`, 'success');
+    } catch (error) {
+      setPrinterStatus(error.message, 'warning');
+    }
+  });
+
+  document.getElementById('serialTestBtn').addEventListener('click', async () => {
+    try {
+      await writeSerialText(testReceiptText());
+      setPrinterStatus('Thermal test sent to printer.', 'success');
+    } catch (error) {
+      setPrinterStatus(error.message, 'warning');
+    }
+  });
+</script>
+{% endblock %}
