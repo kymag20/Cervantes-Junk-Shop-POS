@@ -369,6 +369,10 @@
           <label class="form-label small fw-semibold text-secondary mb-1">Notes</label>
           <input name="notes" class="form-control" placeholder="Opsyonal na tala" value="{{ editing_transaction.notes|default:'' }}">
         </div>
+        <div id="draftNotice" class="alert alert-warning d-none align-items-center justify-content-between gap-2 py-2">
+          <span class="small"><i class="bi bi-save me-1"></i>Auto-saved ang transaction draft sa browser na ito.</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-3" id="clearDraftBtn">Clear draft</button>
+        </div>
         <div class="d-grid gap-2">
           <button type="submit" name="action" value="save_pending" class="btn btn-warning btn-lg rounded-3 ntx-submit shadow-sm">
             <i class="bi bi-hourglass-split me-1"></i>Save Pending
@@ -385,9 +389,97 @@
 {{ editing_items|json_script:"editing-items-data" }}
 <script>
   const initialItems = JSON.parse(document.getElementById('editing-items-data')?.textContent || '[]');
+  const editingTransactionId = '{{ editing_transaction.id|default:"new" }}';
+  const draftKey = `junkshop-pos-transaction-draft-{{ request.user.id }}-${editingTransactionId}`;
   const selected = initialItems.length ? initialItems : [];
   const itemsContainer = document.getElementById('items-container');
   const cartPreview = document.getElementById('cartPreview');
+  const transactionForm = document.getElementById('transactionForm');
+  const draftNotice = document.getElementById('draftNotice');
+  const clearDraftBtn = document.getElementById('clearDraftBtn');
+  const validMaterialIds = new Set(
+    Array.from(document.querySelectorAll('.material-card')).map((card) => String(card.dataset.id))
+  );
+
+  function formField(name) {
+    return transactionForm?.querySelector(`[name="${name}"]`);
+  }
+
+  function draftIsFresh(draft) {
+    const oneDay = 24 * 60 * 60 * 1000;
+    return draft?.updatedAt && Date.now() - draft.updatedAt < oneDay;
+  }
+
+  function showDraftNotice() {
+    if (!draftNotice) return;
+    draftNotice.classList.remove('d-none');
+    draftNotice.classList.add('d-flex');
+  }
+
+  function hideDraftNotice() {
+    if (!draftNotice) return;
+    draftNotice.classList.add('d-none');
+    draftNotice.classList.remove('d-flex');
+  }
+
+  function saveDraft() {
+    if (!transactionForm) return;
+    syncCartQuantities();
+    const draft = {
+      items: selected,
+      customer_id: formField('customer_id')?.value || '',
+      new_customer: formField('new_customer')?.value || '',
+      notes: formField('notes')?.value || '',
+      updatedAt: Date.now(),
+    };
+
+    if (!draft.items.length && !draft.customer_id && !draft.new_customer && !draft.notes) {
+      localStorage.removeItem(draftKey);
+      hideDraftNotice();
+      return;
+    }
+
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+    showDraftNotice();
+  }
+
+  function restoreDraft() {
+    const rawDraft = localStorage.getItem(draftKey);
+    if (!rawDraft) return;
+
+    try {
+      const draft = JSON.parse(rawDraft);
+      if (!draftIsFresh(draft)) {
+        localStorage.removeItem(draftKey);
+        return;
+      }
+
+      const draftItems = Array.isArray(draft.items) ? draft.items : [];
+      selected.splice(
+        0,
+        selected.length,
+        ...draftItems
+          .filter((item) => validMaterialIds.has(String(item.id)))
+          .map((item) => ({
+            id: String(item.id),
+            name: item.name,
+            quantity: item.quantity || 1,
+          }))
+      );
+
+      if (formField('customer_id')) formField('customer_id').value = draft.customer_id || '';
+      if (formField('new_customer')) formField('new_customer').value = draft.new_customer || '';
+      if (formField('notes')) formField('notes').value = draft.notes || '';
+      showDraftNotice();
+    } catch (error) {
+      localStorage.removeItem(draftKey);
+    }
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(draftKey);
+    hideDraftNotice();
+  }
 
   function syncCartQuantities() {
     const qtyInputs = itemsContainer.querySelectorAll('input[name="quantity"]');
@@ -439,6 +531,7 @@
     syncCartQuantities();
     selected.splice(index, 1);
     renderCart();
+    saveDraft();
   }
 
   document.getElementById('materialGrid')?.addEventListener('click', function (e) {
@@ -448,6 +541,7 @@
     selected.push({ id: card.dataset.id, name: card.dataset.name, quantity: 1 });
     renderCart();
     focusQuantity(selected.length - 1);
+    saveDraft();
   });
 
   document.querySelectorAll('.category-chip').forEach((chip) => {
@@ -462,10 +556,24 @@
     });
   });
 
-  document.getElementById('transactionForm')?.addEventListener('submit', function () {
+  transactionForm?.addEventListener('input', saveDraft);
+  transactionForm?.addEventListener('change', saveDraft);
+
+  transactionForm?.addEventListener('submit', function () {
     syncCartQuantities();
+    clearDraft();
   });
 
+  clearDraftBtn?.addEventListener('click', function () {
+    selected.splice(0, selected.length);
+    if (formField('customer_id')) formField('customer_id').value = '';
+    if (formField('new_customer')) formField('new_customer').value = '';
+    if (formField('notes')) formField('notes').value = '';
+    clearDraft();
+    renderCart();
+  });
+
+  restoreDraft();
   renderCart();
 </script>
 {% endblock %}
