@@ -117,35 +117,6 @@ def admin_accounts_remain_if_exclude(exclude_user_id):
     return qs.exists()
 
 
-def get_printer_setting_for(user):
-    printer_setting, _ = PrinterSetting.objects.get_or_create(user=user)
-    return printer_setting
-
-
-def build_receipt_payload(txn):
-    local_date = timezone.localtime(txn.date) if timezone.is_aware(txn.date) else txn.date
-    return {
-        'shop': 'Cervantes Junkshop',
-        'receiptNo': str(txn.id),
-        'date': local_date.strftime('%Y-%m-%d %I:%M %p'),
-        'customer': str(txn.customer) if txn.customer else 'Walk-in',
-        'servedBy': str(txn.served_by) if txn.served_by else '',
-        'type': txn.get_transaction_type_display(),
-        'total': f'{txn.total_amount:.2f}',
-        'notes': txn.notes or '',
-        'items': [
-            {
-                'name': item.material.name,
-                'quantity': f'{item.quantity:g}',
-                'unit': item.material.unit,
-                'price': f'{item.price_per_unit:.2f}',
-                'subtotal': f'{item.subtotal:.2f}',
-            }
-            for item in txn.items.select_related('material').all()
-        ],
-    }
-
-
 def role_required(*roles):
     def decorator(view_func):
         @wraps(view_func)
@@ -598,46 +569,7 @@ def receipt(request, pk):
     if txn.status == Transaction.STATUS_PENDING:
         messages.warning(request, 'Pending pa ang transaction. I-finalize muna bago mag-print ng resibo.')
         return redirect(f'{reverse("new_transaction")}?edit={txn.id}')
-    return render(request, 'receipt.html', {
-        'txn': txn,
-        'printer': get_printer_setting_for(request.user),
-        'receipt_payload': build_receipt_payload(txn),
-    })
-
-
-@login_required
-@role_required(UserProfile.ROLE_ADMIN, UserProfile.ROLE_OWNER)
-def printer_settings(request):
-    printer = get_printer_setting_for(request.user)
-    if request.method == 'POST':
-        print_method = request.POST.get('print_method', PrinterSetting.METHOD_BROWSER)
-        paper_width = request.POST.get('paper_width', PrinterSetting.PAPER_58MM)
-        serial_baud_rate = request.POST.get('serial_baud_rate', '9600')
-        receipt_copies = request.POST.get('receipt_copies', '1')
-
-        if print_method not in dict(PrinterSetting.METHOD_CHOICES):
-            print_method = PrinterSetting.METHOD_BROWSER
-        if paper_width not in dict(PrinterSetting.PAPER_CHOICES):
-            paper_width = PrinterSetting.PAPER_58MM
-        try:
-            serial_baud_rate = int(serial_baud_rate)
-        except (TypeError, ValueError):
-            serial_baud_rate = 9600
-        try:
-            receipt_copies = max(1, min(3, int(receipt_copies)))
-        except (TypeError, ValueError):
-            receipt_copies = 1
-
-        printer.print_method = print_method
-        printer.paper_width = paper_width
-        printer.auto_open_print_dialog = request.POST.get('auto_open_print_dialog') == 'on'
-        printer.serial_baud_rate = serial_baud_rate
-        printer.receipt_copies = receipt_copies
-        printer.save()
-        messages.success(request, 'Printer settings saved.')
-        return redirect('printer_settings')
-
-    return render(request, 'printer_settings.html', {'printer': printer})
+    return render(request, 'receipt.html', {'txn': txn})
 
 # --- TRANSACTION HISTORY (admin only — lahat ng transaksyon) ---
 @login_required

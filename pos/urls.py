@@ -15,7 +15,6 @@ urlpatterns = [
     path('search/', views.search, name='search'),
     path('transaction/new/', views.new_transaction, name='new_transaction'),
     path('transaction/<int:pk>/receipt/', views.receipt, name='receipt'),
-    path('printer-settings/', views.printer_settings, name='printer_settings'),
     path('customers/', views.customers, name='customers'),
     path('categories/', views.reports, name='categories'),
     path('reports/', views.reports, name='reports'),

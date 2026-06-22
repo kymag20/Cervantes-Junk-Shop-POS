@@ -432,7 +432,6 @@
       <a class="menu-link {% if '/reports/summary/' in request.path %}active{% endif %}" href="/reports/summary/"><i class="bi bi-bar-chart"></i> Reports</a>
       <a class="menu-link {% if '/users/' in request.path %}active{% endif %}" href="/users/"><i class="bi bi-person-gear"></i> Users</a>
       <a class="menu-link {% if '/materials/' in request.path %}active{% endif %}" href="/materials/"><i class="bi bi-box-seam"></i> Materials</a>
-      <a class="menu-link {% if '/printer-settings/' in request.path %}active{% endif %}" href="{% url 'printer_settings' %}"><i class="bi bi-printer"></i> Printer</a>
       <a class="menu-link {% if '/capital/' in request.path %}active{% endif %}" href="/capital/"><i class="bi bi-cash-stack"></i> Capital Overview</a>
       <a class="menu-link" href="/backup/"><i class="bi bi-download"></i> Backup DB</a>
       <a class="menu-link" href="/admin/"><i class="bi bi-shield-lock"></i> Admin Panel</a>
@@ -446,7 +445,6 @@
       {% if request.user.profile.can_encode_transactions %}
       <a class="menu-link {% if '/materials/' in request.path %}active{% endif %}" href="/materials/"><i class="bi bi-box-seam"></i> Materials</a>
       <a class="menu-link {% if '/categories/' in request.path %}active{% endif %}" href="/categories/"><i class="bi bi-tags"></i> Categories</a>
-      <a class="menu-link {% if '/printer-settings/' in request.path %}active{% endif %}" href="{% url 'printer_settings' %}"><i class="bi bi-printer"></i> Printer</a>
       {% endif %}
       {% if request.user.is_superuser or request.user.profile.can_view_limited_reports %}
       <a class="menu-link {% if '/reports/summary/' in request.path %}active{% endif %}" href="/reports/summary/"><i class="bi bi-bar-chart"></i> Reports</a>
