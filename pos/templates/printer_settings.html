@@ -71,10 +71,13 @@
       <div class="p-3">
         <div class="d-flex flex-wrap gap-2 mb-3">
           <button class="btn btn-outline-secondary" type="button" id="browserTestBtn">
-            <i class="bi bi-printer me-1"></i> Test Browser Print
+            <i class="bi bi-printer me-1"></i> Test Windows Print
           </button>
           <button class="btn btn-outline-primary" type="button" id="connectSerialBtn">
             <i class="bi bi-usb-symbol me-1"></i> Scan USB/Serial
+          </button>
+          <button class="btn btn-outline-primary" type="button" id="connectUsbBtn">
+            <i class="bi bi-usb-drive me-1"></i> Scan WebUSB
           </button>
           <button class="btn btn-outline-primary" type="button" id="scanBluetoothBtn">
             <i class="bi bi-bluetooth me-1"></i> Scan Bluetooth
@@ -84,7 +87,7 @@
           </button>
         </div>
         <div class="alert alert-info mb-0" id="printerStatus">
-          Ready. Piliin muna ang printer sa test kung direct USB/Serial ang gagamitin.
+          Ready. Para sa normal Windows POS printer, gamitin ang Test Windows Print at piliin ang printer sa print popup.
         </div>
       </div>
     </div>
@@ -170,10 +173,39 @@
   const statusBox = document.getElementById('printerStatus');
   const baudRateInput = document.getElementById('serial_baud_rate');
   let serialPort = null;
+  let usbDevice = null;
 
   function setPrinterStatus(message, type = 'info') {
     statusBox.className = `alert alert-${type} mb-0`;
     statusBox.textContent = message;
+  }
+
+  function browserSupportMessage() {
+    const available = [];
+    const missing = [];
+    if ('serial' in navigator) {
+      available.push('USB/Serial');
+    } else {
+      missing.push('USB/Serial');
+    }
+    if ('usb' in navigator) {
+      available.push('WebUSB');
+    } else {
+      missing.push('WebUSB');
+    }
+    if ('bluetooth' in navigator) {
+      available.push('Bluetooth scan');
+    } else {
+      missing.push('Bluetooth scan');
+    }
+
+    if (!window.isSecureContext) {
+      return 'Direct scan needs HTTPS or localhost. Sa deployed Render site dapat HTTPS ang URL.';
+    }
+    if (!available.length) {
+      return 'Hindi supported ng browser ang direct scan. Gamitin ang Test Windows Print.';
+    }
+    return `Supported scan: ${available.join(', ')}. Kung hindi lumabas ang printer, gamitin ang Test Windows Print.`;
   }
 
   function testReceiptText() {
@@ -195,7 +227,7 @@
 
   async function requestSerialPort() {
     if (!('serial' in navigator)) {
-      throw new Error('Hindi supported ng browser ang USB/Serial scan. Gamitin ang Chrome o Edge sa HTTPS.');
+      throw new Error('Hindi supported ng browser ang USB/Serial scan. Gamitin ang Chrome o Edge sa HTTPS, or gamitin ang Test Windows Print.');
     }
 
     const rememberedPorts = await navigator.serial.getPorts();
@@ -204,6 +236,14 @@
       await serialPort.open({ baudRate: Number(baudRateInput.value || 9600) });
     }
     return serialPort;
+  }
+
+  async function requestUsbDevice() {
+    if (!('usb' in navigator)) {
+      throw new Error('Hindi supported ng browser ang WebUSB scan. Gamitin ang Chrome o Edge sa HTTPS, or gamitin ang Test Windows Print.');
+    }
+    usbDevice = await navigator.usb.requestDevice({ filters: [] });
+    return usbDevice;
   }
 
   async function writeSerialText(text) {
@@ -220,7 +260,7 @@
   }
 
   document.getElementById('browserTestBtn').addEventListener('click', () => {
-    setPrinterStatus('Opening browser print dialog...', 'info');
+    setPrinterStatus('Opening Windows print popup. Piliin doon ang POS printer mo.', 'info');
     window.print();
   });
 
@@ -229,14 +269,23 @@
       await requestSerialPort();
       setPrinterStatus('Printer connected. Pwede na ang thermal test print.', 'success');
     } catch (error) {
-      setPrinterStatus(error.message, 'warning');
+      setPrinterStatus(`${error.message} Kapag hindi lumabas ang printer dito, normal lang iyon sa Windows printer. Gamitin ang Test Windows Print.`, 'warning');
+    }
+  });
+
+  document.getElementById('connectUsbBtn').addEventListener('click', async () => {
+    try {
+      const device = await requestUsbDevice();
+      setPrinterStatus(`USB device found: ${device.productName || 'Unnamed USB device'}. Kung hindi ito nagpi-print, gamitin ang Test Windows Print.`, 'success');
+    } catch (error) {
+      setPrinterStatus(`${error.message} Kapag hindi lumabas ang printer dito, gamitin ang Test Windows Print.`, 'warning');
     }
   });
 
   document.getElementById('scanBluetoothBtn').addEventListener('click', async () => {
     try {
       if (!('bluetooth' in navigator)) {
-        throw new Error('Hindi supported ng browser ang Bluetooth scan. Gamitin ang Chrome o Edge sa HTTPS.');
+        throw new Error('Hindi supported ng browser ang Bluetooth scan. Gamitin ang Chrome o Edge sa HTTPS, or gamitin ang Test Windows Print.');
       }
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
@@ -247,7 +296,7 @@
       });
       setPrinterStatus(`Bluetooth device found: ${device.name || 'Unnamed printer'}. Kung hindi direct-print, i-pair muna sa Windows tapos gamitin ang Browser print.`, 'success');
     } catch (error) {
-      setPrinterStatus(error.message, 'warning');
+      setPrinterStatus(`${error.message} Kung classic Bluetooth printer yan, i-pair muna sa Windows tapos gamitin ang Test Windows Print.`, 'warning');
     }
   });
 
@@ -256,8 +305,10 @@
       await writeSerialText(testReceiptText());
       setPrinterStatus('Thermal test sent to printer.', 'success');
     } catch (error) {
-      setPrinterStatus(error.message, 'warning');
+      setPrinterStatus(`${error.message} Kung hindi direct-compatible ang printer, gamitin ang Test Windows Print.`, 'warning');
     }
   });
+
+  setPrinterStatus(browserSupportMessage(), 'info');
 </script>
 {% endblock %}

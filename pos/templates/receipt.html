@@ -184,7 +184,7 @@
 
   async function requestSerialPort() {
     if (!('serial' in navigator)) {
-      throw new Error('Hindi supported ng browser ang USB/Serial print. Gamitin ang Chrome o Edge sa HTTPS.');
+      throw new Error('Hindi supported ng browser ang direct USB/Serial print. Gamitin ang Chrome o Edge sa HTTPS, or pindutin ang I-Print at piliin ang printer sa popup.');
     }
 
     const rememberedPorts = await navigator.serial.getPorts();
@@ -222,7 +222,7 @@
         await writeSerialReceipt();
         setPrinterStatus('Receipt sent to printer.');
       } catch (error) {
-        setPrinterStatus(error.message);
+        setPrinterStatus(`${error.message} Kapag hindi lumabas ang printer sa direct print, gamitin ang I-Print button.`);
       }
     });
   }
